@@ -1,0 +1,18 @@
+runtime: "container"
+startCommand:
+  type: "http"
+  configSchema:
+    type: "object"
+    properties:
+      apiToken:
+        type: "string"
+        title: "Medici API Token"
+        description: "Your Medici Hotels API authentication token"
+    required: ["apiToken"]
+  exampleConfig:
+    apiToken: "your-medici-api-token-here"
+build:
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."
+env:
+  NODE_ENV: "production" 
