@@ -63,4 +63,7 @@ pids
 # Docker
 Dockerfile
 .dockerignore
-docker-compose.yml 
+docker-compose.yml
+
+# Smithery build output (will be built fresh in container)
+.smithery 

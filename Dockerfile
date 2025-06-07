@@ -2,12 +2,11 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-# Copy package files
+# Copy package files first
 COPY package*.json ./
-COPY pnpm-lock.yaml ./
 
 # Install dependencies
-RUN if [ -f package.json ]; then npm ci; fi
+RUN npm ci
 
 # Copy application code
 COPY . .
