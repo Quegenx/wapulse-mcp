@@ -1,1 +1,4 @@
-runtime: "typescript" 
+runtime: "typescript"
+name: sunday-hotels-mcp
+build:
+  entry: "./src/index.ts" 
