@@ -3,6 +3,11 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import fetch from "node-fetch";
 import { BoardType, RoomCategory } from "./types/api.js";
+
+// Configuration schema for Smithery
+export const configSchema = z.object({
+  SUNDAY_API_TOKEN: z.string().describe("Your Sunday API authentication token")
+});
 import type { 
   SearchRequest, 
   SearchResult, 
@@ -838,7 +843,7 @@ server.addTool({
 
 
 // Export for Smithery deployment
-export default function({ sessionId, config }: { sessionId: string, config: any }) {
+export default function({ config }: { config: z.infer<typeof configSchema> }) {
   // Apply configuration from Smithery
   if (config.SUNDAY_API_TOKEN) {
     process.env.SUNDAY_API_TOKEN = config.SUNDAY_API_TOKEN;
