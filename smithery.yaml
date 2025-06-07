@@ -1,3 +1,15 @@
-runtime: "typescript"
-env:
-  NODE_ENV: "production" 
+runtime: "container"
+build:
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."
+startCommand:
+  type: "http"
+  configSchema:
+    type: "object"
+    properties:
+      SUNDAY_API_TOKEN:
+        type: "string"
+        description: "Your Sunday API authentication token"
+    required: ["SUNDAY_API_TOKEN"]
+  exampleConfig:
+    SUNDAY_API_TOKEN: "your-api-token-here" 
