@@ -852,12 +852,10 @@ export default function({ config }: { config: z.infer<typeof configSchema> }) {
   return server;
 }
 
-// Start the server
-const port = process.env.PORT ? parseInt(process.env.PORT) : 8080;
-
-server.start({
-  transportType: "httpStream",
-  httpStream: { port: port }
-});
-
-console.log(`Sunday Hotels MCP server started on port ${port}`);
+// Start the server for local development
+if (typeof process !== 'undefined' && process.argv[1] && process.argv[1].endsWith('index.js')) {
+  server.start({
+    transportType: "stdio"
+  });
+  console.log("Sunday Hotels MCP server started");
+}
