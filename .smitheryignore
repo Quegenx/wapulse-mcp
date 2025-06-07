@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.git/
+.github/
+*.log
+*.md
+LICENSE
+eslint.config.js
+vitest.config.js
+tsconfig.json
+pnpm-lock.yaml
+package-lock.json 

@@ -1,4 +1,6 @@
 runtime: "typescript"
-name: sunday-hotels-mcp
+name: sunday-hotels-mcp-v2
 build:
-  entry: "./src/index.ts" 
+  entry: "./src/index.ts"
+  target: "node18"
+  minify: true 
