@@ -3,11 +3,6 @@ import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import fetch from "node-fetch";
 import { BoardType, RoomCategory } from "./types/api.js";
-
-// Configuration schema for Smithery
-export const configSchema = z.object({
-  SUNDAY_API_TOKEN: z.string().describe("Your Sunday API authentication token")
-});
 import type { 
   SearchRequest, 
   SearchResult, 
@@ -32,9 +27,9 @@ import type {
 const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 
 const server = new FastMCP({
-  name: "Sunday Hotels MCP",
+  name: "Medici Hotels MCP",
   version: "1.0.0",
-  instructions: "MCP server for searching and booking hotels through Sunday API. Use tools to search hotel prices, manage active bookings, canceled bookings, sold bookings, add new opportunities and more. All tools require a valid API token in SUNDAY_API_TOKEN environment variable.",
+  instructions: "MCP server for searching and booking hotels through Medici API. Use tools to search hotel prices, manage active bookings, canceled bookings, sold bookings, add new opportunities and more. All tools require a valid API token in MEDICI_API_TOKEN environment variable.",
 });
 
 
@@ -61,9 +56,9 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
-        throw new UserError("API token not configured. Please set SUNDAY_API_TOKEN environment variable.");
+        throw new UserError("API token not configured. Please set MEDICI_API_TOKEN environment variable.");
       }
 
       // Validate dates
@@ -191,9 +186,9 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
-        throw new UserError("API token not configured. Please set SUNDAY_API_TOKEN environment variable.");
+        throw new UserError("API token not configured. Please set MEDICI_API_TOKEN environment variable.");
       }
 
       const requestBody: GetRoomsActiveRequest = {
@@ -268,7 +263,7 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
         throw new Error("API token not configured");
       }
@@ -343,7 +338,7 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
         throw new Error("API token not configured");
       }
@@ -420,7 +415,7 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
         throw new Error("API token not configured");
       }
@@ -504,7 +499,7 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
         throw new Error("API token not configured");
       }
@@ -571,7 +566,7 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
         throw new Error("API token not configured");
       }
@@ -635,7 +630,7 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
         throw new Error("API token not configured");
       }
@@ -705,7 +700,7 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
         throw new Error("API token not configured");
       }
@@ -784,7 +779,7 @@ server.addTool({
   },
   execute: async (args, { log }) => {
     try {
-      const token = process.env.SUNDAY_API_TOKEN;
+      const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
         throw new Error("API token not configured");
       }
@@ -842,20 +837,9 @@ server.addTool({
 
 
 
-// Export for Smithery deployment
-export default function({ config }: { config: z.infer<typeof configSchema> }) {
-  // Apply configuration from Smithery
-  if (config.SUNDAY_API_TOKEN) {
-    process.env.SUNDAY_API_TOKEN = config.SUNDAY_API_TOKEN;
-  }
-  
-  return server;
-}
+// Start the server
+server.start({
+  transportType: "stdio"
+});
 
-// Start the server for local development
-if (typeof process !== 'undefined' && process.argv[1] && process.argv[1].endsWith('index.js')) {
-  server.start({
-    transportType: "stdio"
-  });
-  console.log("Sunday Hotels MCP server started");
-}
+console.log("Medici Hotels MCP server started");
