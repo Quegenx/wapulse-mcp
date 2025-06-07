@@ -1,3 +1,0 @@
-This project should NOT use Docker.
-Use TypeScript runtime only.
-See .smithery.json for configuration. 

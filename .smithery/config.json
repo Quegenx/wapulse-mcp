@@ -1,5 +1,0 @@
-{
-  "runtime": "typescript",
-  "buildCommand": "npx @smithery/cli build",
-  "entryPoint": "./src/index.ts"
-} 
