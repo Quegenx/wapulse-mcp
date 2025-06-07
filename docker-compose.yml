@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  sunday-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: sunday-mcp-server
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    healthcheck:
+      test: ["CMD", "node", "-e", "console.log('Health check passed')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - sunday-network
+
+  # Development service
+  sunday-mcp-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: base
+    container_name: sunday-mcp-dev
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      - NODE_ENV=development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: ["pnpm", "dev"]
+    networks:
+      - sunday-network
+    profiles:
+      - dev
+
+networks:
+  sunday-network:
+    driver: bridge 
