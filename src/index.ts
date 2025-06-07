@@ -837,9 +837,20 @@ server.addTool({
 
 
 
-// Start the server
-server.start({
-  transportType: "stdio"
-});
+// Export for Smithery deployment
+export default function({ sessionId, config }: { sessionId: string, config: any }) {
+  // Apply configuration from Smithery
+  if (config.SUNDAY_API_TOKEN) {
+    process.env.SUNDAY_API_TOKEN = config.SUNDAY_API_TOKEN;
+  }
+  
+  return server;
+}
 
-console.log("Sunday Hotels MCP server started");
+// Start the server for local development
+if (typeof process !== 'undefined' && process.argv[1] && process.argv[1].endsWith('index.js')) {
+  server.start({
+    transportType: "stdio"
+  });
+  console.log("Sunday Hotels MCP server started");
+}

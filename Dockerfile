@@ -22,5 +22,11 @@ RUN adduser -S sunday -u 1001
 RUN chown -R sunday:nodejs /app
 USER sunday
 
+# Expose the port that Smithery will use
+EXPOSE 8080
+
+# Set default PORT if not provided
+ENV PORT=8080
+
 # Start the Smithery-built application
 CMD ["node", ".smithery/index.cjs"] 
