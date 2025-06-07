@@ -1,4 +1,5 @@
-import { FastMCP } from "fastmcp";
+import { FastMCP, UserError } from "fastmcp";
+import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import fetch from "node-fetch";
 import { BoardType, RoomCategory } from "./types/api.js";
@@ -13,12 +14,13 @@ import type {
   GetOpportunitiesResponse,
   InsertOpportunityRequest,
   InsertOpportunityResponse,
-  CreateManualOpportunityRequest,
-  CreateManualOpportunityResponse,
+  ManualBookingRequest,
+  ManualBookingResponse,
   CancelRoomActiveResponse,
   RoomArchiveRequest,
   RoomArchiveResponse,
-  StaticHotelData
+  ApiBooking,
+  UpdatePushPriceResponse
 } from "./types/api.js";
 
 // Validate date format YYYY-MM-DD
@@ -27,7 +29,10 @@ const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
 const server = new FastMCP({
   name: "Medici Hotels MCP",
   version: "1.0.0",
+  instructions: "MCP server for searching and booking hotels through Medici API. Use tools to search hotel prices, manage active bookings, canceled bookings, sold bookings, add new opportunities and more. All tools require a valid API token in MEDICI_API_TOKEN environment variable.",
 });
+
+
 
 // Add the search tool
 server.addTool({
@@ -41,13 +46,37 @@ server.addTool({
     adults: z.number().int().min(1).default(2),
     paxChildren: z.array(z.number().int().min(0).max(17)).default([]),
     stars: z.number().int().min(1).max(5).optional(),
+    limit: z.number().int().optional(),
   }),
+  annotations: {
+    title: "Hotel Price Search",
+    readOnlyHint: true,
+    openWorldHint: true,
+    idempotentHint: true,
+  },
   execute: async (args, { log }) => {
     try {
-      // TODO: Replace with actual token management
       const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
-        throw new Error("API token not configured");
+        throw new UserError("API token not configured. Please set MEDICI_API_TOKEN environment variable.");
+      }
+
+      // Validate dates
+      const fromDate = new Date(args.dateFrom);
+      const toDate = new Date(args.dateTo);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (fromDate < today) {
+        throw new UserError("Check-in date cannot be in the past");
+      }
+
+      if (fromDate >= toDate) {
+        throw new UserError("Check-in date must be before check-out date");
+      }
+
+      if (!args.city.trim()) {
+        throw new UserError("City is required for hotel search");
       }
 
       const requestBody: SearchRequest = {
@@ -58,15 +87,17 @@ server.addTool({
         paxChildren: args.paxChildren,
         ...(args.hotelName && { hotelName: args.hotelName }),
         ...(args.stars && { stars: args.stars }),
+        ...(args.limit && { limit: args.limit }),
       };
 
-      // Log a simplified version of the request
-      log.info("Searching for hotels", {
+      log.info("Starting hotel search", {
         city: requestBody.city,
         dates: `${requestBody.dateFrom} to ${requestBody.dateTo}`,
         adults: requestBody.adults,
         children: requestBody.paxChildren.length,
         stars: requestBody.stars,
+        hotelName: requestBody.hotelName,
+        limit: requestBody.limit,
       });
 
       const response = await fetch(
@@ -83,32 +114,52 @@ server.addTool({
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`API request failed: ${response.status} - ${errorText}`);
+        log.error("API request failed", { 
+          status: response.status, 
+          statusText: response.statusText,
+          error: errorText 
+        });
+        throw new UserError(`Hotel search failed: ${response.status} - ${response.statusText}`);
       }
 
-      const results = (await response.json()) as SearchResult[];
+      const results = (await response.json()) as SearchResult;
+      
+      log.info("Hotel search completed", { 
+        resultsCount: results.length,
+        city: requestBody.city 
+      });
 
-      // Format the results for better readability
+      if (results.length === 0) {
+        return {
+          content: [
+            {
+              type: "text",
+              text: `No hotels found for ${requestBody.city} from ${requestBody.dateFrom} to ${requestBody.dateTo}. Try adjusting your search criteria.`
+            }
+          ]
+        };
+      }
+
       return {
         content: [
           {
             type: "text",
-            text: `Found ${results.length} hotel options:\n\n${results
-              .map(
-                (r) => `- ${r.items[0].name} (${r.items[0].hotelId})
-  • Price: ${r.price.amount} ${r.price.currency}
-  • Board: ${r.items[0].board}
-  • Room Type: ${r.items[0].category} ${r.items[0].bedding}
-  • Cancellation: ${r.cancellation.type}
-  ${r.specialOffers.length ? `• Special Offers: ${r.specialOffers.map(o => o.title).join(", ")}\n` : ""}`
-              )
-              .join("\n")}`
+            text: `Found ${results.length} hotel options:\n\n${results.map((result, index) => 
+              `${index + 1}. ${result.items[0]?.name || 'Unknown Hotel'}\n   Price: ${result.price.amount} ${result.price.currency}\n   Board: ${result.items[0]?.board || 'N/A'}\n   Category: ${result.items[0]?.category || 'N/A'}\n   Confirmation: ${result.confirmation}`
+            ).join('\n\n')}`
           }
         ]
       };
     } catch (error) {
-      log.error("Search failed", { error: String(error) });
-      throw error;
+      if (error instanceof UserError) {
+        throw error;
+      }
+      log.error("Unexpected error during hotel search", { 
+        error: String(error),
+        city: args.city,
+        dates: `${args.dateFrom} to ${args.dateTo}`
+      });
+      throw new UserError("An unexpected error occurred while searching for hotels. Please try again.");
     }
   }
 });
@@ -118,34 +169,40 @@ server.addTool({
   name: "get_my_hotels_orders",
   description: "Retrieve all currently active (unsold) room opportunities with optional filters",
   parameters: z.object({
-    StartDate: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    EndDate: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    HotelName: z.string().optional(),
-    HotelStars: z.number().int().min(1).max(5).optional(),
-    City: z.string().optional(),
-    RoomBoard: z.string().optional(),
-    RoomCategory: z.string().optional(),
-    Provider: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    hotelName: z.string().optional(),
+    hotelStars: z.number().int().min(1).max(5).optional(),
+    city: z.string().optional(),
+    roomBoard: z.string().optional(),
+    roomCategory: z.string().optional(),
+    provider: z.string().optional(),
   }),
+  annotations: {
+    title: "Active Hotel Orders",
+    readOnlyHint: true,
+    openWorldHint: true,
+    idempotentHint: true,
+  },
   execute: async (args, { log }) => {
     try {
       const token = process.env.MEDICI_API_TOKEN;
       if (!token) {
-        throw new Error("API token not configured");
+        throw new UserError("API token not configured. Please set MEDICI_API_TOKEN environment variable.");
       }
 
       const requestBody: GetRoomsActiveRequest = {
         ...args
       };
 
-      log.info("Fetching active rooms", {
-        dates: args.StartDate && args.EndDate ? `${args.StartDate} to ${args.EndDate}` : "all dates",
-        city: args.City || "any",
-        hotel: args.HotelName || "any",
-        stars: args.HotelStars || "any",
-        board: args.RoomBoard || "any",
-        category: args.RoomCategory || "any",
-        provider: args.Provider || "any"
+      log.info("Fetching active hotel orders", {
+        dates: args.startDate && args.endDate ? `${args.startDate} to ${args.endDate}` : "all dates",
+        city: args.city || "any",
+        hotel: args.hotelName || "any",
+        stars: args.hotelStars || "any",
+        board: args.roomBoard || "any",
+        category: args.roomCategory || "any",
+        provider: args.provider || "any"
       });
 
       const response = await fetch(
@@ -165,24 +222,15 @@ server.addTool({
         throw new Error(`API request failed: ${response.status} - ${errorText}`);
       }
 
-      const data = (await response.json()) as GetRoomsActiveResponse;
+      const results = (await response.json()) as GetRoomsActiveResponse;
 
-      // Format the results for better readability
       return {
         content: [
           {
             type: "text",
-            text: `Found ${data.TotalCount} active rooms (${data.Pages} pages):\n\n${data.Results
-              .map(
-                (r) => `- ${r.HotelName} (${r.City})
-  • Dates: ${new Date(r.StartDate).toLocaleDateString()} to ${new Date(r.EndDate).toLocaleDateString()}
-  • Price: ${r.Price} (Push: ${r.PushPrice}, Last: ${r.LastPrice})
-  • Room: ${r.RoomCategory} with ${r.RoomBoard} board
-  • Prebook ID: ${r.PrebookId}
-  • Reserved for: ${r.ReservationFullName}
-  • Last price update: ${new Date(r.PriceUpdatedAt).toLocaleString()}`
-              )
-              .join("\n\n")}`
+            text: `Found ${results.length} active rooms:\n\n${results.map(room => 
+              `- ${room.hotelName}\n  • Dates: ${new Date(room.startDate).toLocaleDateString()} to ${new Date(room.endDate).toLocaleDateString()}\n  • Price: ${room.price} (Push: ${room.pushPrice}, Last: ${room.lastPrice})\n  • Room: ${room.category} with ${room.board} board\n  • Prebook ID: ${room.prebookId}\n  • Reserved for: ${room.reservationFullName}\n  • Last price update: ${new Date(room.dateLastPrice).toLocaleDateString()}`
+            ).join('\n\n')}`
           }
         ]
       };
@@ -193,20 +241,101 @@ server.addTool({
   }
 });
 
+// Add the get rooms sales tool
+server.addTool({
+  name: "get_hotels_rooms_sales",
+  description: "Retrieve all sold room opportunities with optional filters",
+  parameters: z.object({
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    hotelName: z.string().optional(),
+    hotelStars: z.number().int().min(1).max(5).optional(),
+    city: z.string().optional(),
+    roomBoard: z.string().optional(),
+    roomCategory: z.string().optional(),
+    provider: z.string().optional(),
+  }),
+  annotations: {
+    title: "Sold Hotel Rooms",
+    readOnlyHint: true,
+    openWorldHint: true,
+    idempotentHint: true,
+  },
+  execute: async (args, { log }) => {
+    try {
+      const token = process.env.MEDICI_API_TOKEN;
+      if (!token) {
+        throw new Error("API token not configured");
+      }
+
+      const requestBody = {
+        ...args
+      };
+
+      log.info("Fetching sold rooms", {
+        dates: args.startDate && args.endDate ? `${args.startDate} to ${args.endDate}` : "all dates",
+        city: args.city || "any",
+        hotel: args.hotelName || "any",
+        stars: args.hotelStars || "any",
+        board: args.roomBoard || "any",
+        category: args.roomCategory || "any",
+        provider: args.provider || "any"
+      });
+
+      const response = await fetch(
+        "https://medici-backend.azurewebsites.net/api/hotels/GetRoomsSales",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API request failed: ${response.status} - ${errorText}`);
+      }
+
+      const results = await response.json();
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Sold rooms data:\n\n${JSON.stringify(results, null, 2)}`
+          }
+        ]
+      };
+    } catch (error) {
+      log.error("Failed to fetch sold rooms", { error: String(error) });
+      throw error;
+    }
+  }
+});
+
 // Add the get canceled rooms tool
 server.addTool({
   name: "get_hotels_rooms_canceled",
   description: "Returns a list of room bookings that were canceled, with optional filters for dates, hotel, city, etc.",
   parameters: z.object({
-    StartDate: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    EndDate: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    HotelName: z.string().optional(),
-    HotelStars: z.number().int().min(1).max(5).optional(),
-    City: z.string().optional(),
-    RoomBoard: z.string().optional(),
-    RoomCategory: z.string().optional(),
-    Provider: z.string().optional(),
+    startDate: z.string().optional(),
+    endDate: z.string().optional(),
+    hotelName: z.string().optional(),
+    hotelStars: z.number().int().min(1).max(5).optional(),
+    city: z.string().optional(),
+    roomBoard: z.string().optional(),
+    roomCategory: z.string().optional(),
+    provider: z.string().optional(),
   }),
+  annotations: {
+    title: "Canceled Hotel Rooms",
+    readOnlyHint: true,
+    openWorldHint: true,
+    idempotentHint: true,
+  },
   execute: async (args, { log }) => {
     try {
       const token = process.env.MEDICI_API_TOKEN;
@@ -219,13 +348,13 @@ server.addTool({
       };
 
       log.info("Fetching canceled rooms", {
-        dates: args.StartDate && args.EndDate ? `${args.StartDate} to ${args.EndDate}` : "all dates",
-        city: args.City || "any",
-        hotel: args.HotelName || "any",
-        stars: args.HotelStars || "any",
-        board: args.RoomBoard || "any",
-        category: args.RoomCategory || "any",
-        provider: args.Provider || "any"
+        dates: args.startDate && args.endDate ? `${args.startDate} to ${args.endDate}` : "all dates",
+        city: args.city || "any",
+        hotel: args.hotelName || "any",
+        stars: args.hotelStars || "any",
+        board: args.roomBoard || "any",
+        category: args.roomCategory || "any",
+        provider: args.provider || "any"
       });
 
       const response = await fetch(
@@ -247,21 +376,13 @@ server.addTool({
 
       const results = (await response.json()) as GetRoomsCancelResponse;
 
-      // Format the results for better readability
       return {
         content: [
           {
             type: "text",
-            text: `Found ${results.length} canceled room bookings:\n\n${results
-              .map(
-                (r) => `- ${r.hotelName}
-  • Dates: ${new Date(r.startDate).toLocaleDateString()} to ${new Date(r.endDate).toLocaleDateString()}
-  • Room: ${r.category} with ${r.board}
-  • Price: ${r.price} (Push Price: ${r.pushPrice})
-  • Reserved for: ${r.reservationFullName}
-  • Free cancellation until: ${new Date(r.cancellationTo).toLocaleString()}`
-              )
-              .join("\n\n")}`
+            text: `Found ${results.length} canceled rooms:\n\n${results.map(room => 
+              `- ${room.hotelName}\n  • Dates: ${new Date(room.startDate).toLocaleDateString()} to ${new Date(room.endDate).toLocaleDateString()}\n  • Price: ${room.price} (Push: ${room.pushPrice})\n  • Room: ${room.category} with ${room.board} board\n  • Reserved for: ${room.reservationFullName}\n  • Cancellation date: ${new Date(room.dateLastPrice).toLocaleDateString()}`
+            ).join('\n\n')}`
           }
         ]
       };
@@ -272,20 +393,26 @@ server.addTool({
   }
 });
 
+
+
 // Add the opportunities tool
 server.addTool({
   name: "get_hotels_opportunities_options",
   description: "Returns a list of active room opportunities based on hotel, date, and other filters",
   parameters: z.object({
-    StartDate: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    EndDate: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    HotelName: z.string().optional(),
-    HotelStars: z.number().int().min(1).max(5).optional(),
-    City: z.string().optional(),
-    RoomBoard: z.string().optional(),
-    RoomCategory: z.string().optional(),
-    Provider: z.string().optional(),
+    hotelStars: z.number().int().min(1).max(5).optional(),
+    city: z.string().optional(),
+    hotelName: z.string().optional(),
+    reservationMonthDate: z.string().optional(),
+    checkInMonthDate: z.string().optional(),
+    provider: z.string().optional(),
   }),
+  annotations: {
+    title: "Hotel Opportunities",
+    readOnlyHint: true,
+    openWorldHint: true,
+    idempotentHint: true,
+  },
   execute: async (args, { log }) => {
     try {
       const token = process.env.MEDICI_API_TOKEN;
@@ -298,13 +425,10 @@ server.addTool({
       };
 
       log.info("Fetching opportunities", {
-        dates: args.StartDate && args.EndDate ? `${args.StartDate} to ${args.EndDate}` : "all dates",
-        city: args.City || "any",
-        hotel: args.HotelName || "any",
-        stars: args.HotelStars || "any",
-        board: args.RoomBoard || "any",
-        category: args.RoomCategory || "any",
-        provider: args.Provider || "any"
+        city: args.city || "any",
+        hotel: args.hotelName || "any",
+        stars: args.hotelStars || "any",
+        provider: args.provider || "any"
       });
 
       const response = await fetch(
@@ -326,22 +450,13 @@ server.addTool({
 
       const opportunities = (await response.json()) as GetOpportunitiesResponse;
 
-      // Format the results for better readability
       return {
         content: [
           {
             type: "text",
-            text: `Found ${opportunities.length} opportunities:\n\n${opportunities
-              .map(
-                (opp) => `- ${opp.HotelName}
-  • Prebook ID: ${opp.PrebookId}
-  • Dates: ${new Date(opp.StartDate).toLocaleDateString()} to ${new Date(opp.EndDate).toLocaleDateString()}
-  • Room: ${opp.Category} with ${opp.Board}
-  • Price: ${opp.Price.toFixed(2)} (Push: ${opp.PushPrice.toFixed(2)})
-  • Last Price: ${opp.LastPrice.toFixed(2)} (Updated: ${new Date(opp.DateLastPrice).toLocaleString()})
-  • Reserved for: ${opp.ReservationFullName}`
-              )
-              .join("\n\n")}`
+            text: `Found ${opportunities.length} opportunities:\n\n${opportunities.map(opp => 
+              `- ${opp.HotelName}\n  • Dates: ${new Date(opp.StartDate).toLocaleDateString()} to ${new Date(opp.EndDate).toLocaleDateString()}\n  • Price: ${opp.Price} (Push: ${opp.PushPrice})\n  • Room: ${opp.Category} with ${opp.Board} board\n  • Reserved for: ${opp.ReservationFullName}\n  • Last price: ${opp.LastPrice} (${new Date(opp.DateLastPrice).toLocaleDateString()})`
+            ).join('\n\n')}`
           }
         ]
       };
@@ -357,23 +472,31 @@ server.addTool({
   name: "insert_hotels_opportunities_options",
   description: "Insert a new hotel opportunity into the system",
   parameters: z.object({
-    boardId: z.number().int().min(1).max(7),
-    categoryId: z.number().int().min(1).max(15),
-    startDateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, "Date must be in ISO8601 format"),
-    endDateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/, "Date must be in ISO8601 format"),
-    buyPrice: z.number().positive(),
-    pushPrice: z.number().positive(),
-    maxRooms: z.number().int().positive(),
+    hotelId: z.number().int().optional(),
+    boardId: z.number().int().min(1).max(2147483647),
+    categoryId: z.number().int().min(1).max(2147483647),
+    startDateStr: z.string().min(1).max(50),
+    endDateStr: z.string().min(1).max(50),
+    buyPrice: z.number().min(1).max(10000),
+    pushPrice: z.number().min(1).max(10000),
+    maxRooms: z.number().int().min(1).max(30),
     ratePlanCode: z.string().optional(),
     invTypeCode: z.string().optional(),
-    reservationFullName: z.string(),
-    destinationId: z.number().int().positive(),
-    stars: z.number().int().min(1).max(5),
+    reservationFullName: z.string().max(500).optional(),
+    stars: z.number().int().min(1).max(5).optional(),
+    destinationId: z.number().int().optional(),
     locationRange: z.number().int().min(0).optional(),
-    providerId: z.number().int().positive().nullable().optional(),
-    paxAdults: z.number().int().positive(),
+    providerId: z.number().int().optional().nullable(),
+    userId: z.number().int().optional(),
+    paxAdults: z.number().int().optional(),
     paxChildren: z.array(z.number().int().min(0).max(17)).default([]),
   }),
+  annotations: {
+    title: "Create Hotel Opportunity",
+    readOnlyHint: false,
+    destructiveHint: false,
+    openWorldHint: true,
+  },
   execute: async (args, { log }) => {
     try {
       const token = process.env.MEDICI_API_TOKEN;
@@ -385,14 +508,8 @@ server.addTool({
         ...args
       };
 
-      // Get board type and room category names for logging
-      const boardName = BoardType[args.boardId] || 'Unknown';
-      const categoryName = RoomCategory[args.categoryId] || 'Unknown';
-
       log.info("Inserting new opportunity", {
-        dates: `${new Date(args.startDateStr).toLocaleDateString()} to ${new Date(args.endDateStr).toLocaleDateString()}`,
-        board: boardName,
-        category: categoryName,
+        dates: `${args.startDateStr} to ${args.endDateStr}`,
         prices: `Buy: ${args.buyPrice}, Push: ${args.pushPrice}`,
         maxRooms: args.maxRooms,
         stars: args.stars,
@@ -418,25 +535,11 @@ server.addTool({
 
       const result = (await response.json()) as InsertOpportunityResponse;
 
-      // Format the results for better readability
       return {
         content: [
           {
             type: "text",
-            text: `✅ Opportunity inserted successfully!
-
-Details:
-• ID: ${result.id}
-• Board: ${boardName} (ID: ${args.boardId})
-• Room Category: ${categoryName} (ID: ${args.categoryId})
-• Dates: ${new Date(args.startDateStr).toLocaleDateString()} to ${new Date(args.endDateStr).toLocaleDateString()}
-• Prices: Buy ${args.buyPrice}, Push ${args.pushPrice}
-• Rooms Available: ${args.maxRooms}
-• Stars: ${args.stars}
-• Guest Configuration: ${args.paxAdults} adults${args.paxChildren.length ? `, ${args.paxChildren.length} children (ages: ${args.paxChildren.join(', ')})` : ''}
-• Reserved for: ${args.reservationFullName}
-
-Server Response: ${result.message}`
+            text: `Opportunity inserted successfully:\n\n${JSON.stringify(result, null, 2)}`
           }
         ]
       };
@@ -447,22 +550,20 @@ Server Response: ${result.message}`
   }
 });
 
-// Add the create manual opportunity tool
+// Add the update push price tool
 server.addTool({
-  name: "book_now_hotel",
-  description: "Create a manual hotel room opportunity and trigger the booking flow for it",
+  name: "update_room_push_price",
+  description: "Update the push price for an active room booking",
   parameters: z.object({
-    StartDate: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format"),
-    EndDate: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format"),
-    PaxAdults: z.number().int().positive(),
-    PaxChildren: z.array(z.number().int().min(0).max(17)).default([]),
-    ReservationFirstName: z.string(),
-    ReservationLastName: z.string(),
-    City: z.string(),
-    RoomCategory: z.string(),
-    RoomBoard: z.string(),
-    ExpectedPrice: z.number().positive(),
+    preBookId: z.number().int(),
+    pushPrice: z.number(),
   }),
+  annotations: {
+    title: "Update Room Push Price",
+    readOnlyHint: false,
+    destructiveHint: false,
+    openWorldHint: true,
+  },
   execute: async (args, { log }) => {
     try {
       const token = process.env.MEDICI_API_TOKEN;
@@ -470,21 +571,18 @@ server.addTool({
         throw new Error("API token not configured");
       }
 
-      const requestBody: CreateManualOpportunityRequest = {
-        ...args
+      const requestBody: ApiBooking = {
+        preBookId: args.preBookId,
+        pushPrice: args.pushPrice
       };
 
-      log.info("Creating manual opportunity", {
-        dates: `${args.StartDate} to ${args.EndDate}`,
-        city: args.City,
-        room: `${args.RoomCategory} with ${args.RoomBoard}`,
-        price: args.ExpectedPrice,
-        pax: `${args.PaxAdults} adults, ${args.PaxChildren.length} children`,
-        guest: `${args.ReservationFirstName} ${args.ReservationLastName}`
+      log.info("Updating push price", {
+        preBookId: args.preBookId,
+        newPushPrice: args.pushPrice
       });
 
       const response = await fetch(
-        "https://medici-backend.azurewebsites.net/api/hotels/CreateManualOpportunity",
+        "https://medici-backend.azurewebsites.net/api/hotels/UpdateRoomsActivePushPrice",
         {
           method: "POST",
           headers: {
@@ -500,29 +598,18 @@ server.addTool({
         throw new Error(`API request failed: ${response.status} - ${errorText}`);
       }
 
-      const result = (await response.json()) as CreateManualOpportunityResponse;
+      const result = await response.json() as UpdatePushPriceResponse;
 
-      // Format the results for better readability
       return {
         content: [
           {
             type: "text",
-            text: `${result.success ? '✅' : '❌'} Manual Opportunity Creation ${result.success ? 'Successful' : 'Failed'}!
-
-Details:
-• Hotel ID: ${result.hotelId}
-• Room: ${result.roomName}
-• Board: ${result.board}
-• Provider: ${result.provider}
-• Booking ID: ${result.bookingSuccess}
-• Booking Status: ${result.bookingConfirmed ? 'Confirmed' : 'Pending'}
-
-Server Message: ${result.message}`
+            text: `Push price updated successfully:\n\n${JSON.stringify(result, null, 2)}`
           }
         ]
       };
     } catch (error) {
-      log.error("Failed to create manual opportunity", { error: String(error) });
+      log.error("Failed to update push price", { error: String(error) });
       throw error;
     }
   }
@@ -535,6 +622,12 @@ server.addTool({
   parameters: z.object({
     prebookId: z.number().int().positive(),
   }),
+  annotations: {
+    title: "Cancel Room Booking",
+    readOnlyHint: false,
+    destructiveHint: true,
+    openWorldHint: true,
+  },
   execute: async (args, { log }) => {
     try {
       const token = process.env.MEDICI_API_TOKEN;
@@ -564,11 +657,9 @@ server.addTool({
 
       const operations = (await response.json()) as CancelRoomActiveResponse;
 
-      // Count successes and failures
       const successes = operations.filter(op => op.result === "Success").length;
       const failures = operations.length - successes;
 
-      // Format the results for better readability
       return {
         content: [
           {
@@ -589,41 +680,103 @@ ${failures === 0 ? "✅ All operations completed successfully!" : "⚠️ Some o
   }
 });
 
-// Add the get room archive data tool
-interface RoomArchiveDataResult {
-  startDate: string;
-  endDate: string;
-  hotelName: string;
-  city: string;
-  price: number;
-  roomBoard: string;
-  roomCategory: string;
-  priceUpdatedAt: string;
-}
+// Add the manual book room tool
+server.addTool({
+  name: "book_now_hotel",
+  description: "Create a manual hotel room opportunity and trigger the booking flow for it",
+  parameters: z.object({
+    hotelId: z.number().int().optional(),
+    from: z.string().optional(),
+    to: z.string().optional(),
+    guestName: z.string().optional(),
+    room: z.any().optional(),
+    searchResult: z.any().optional(),
+  }),
+  annotations: {
+    title: "Book Hotel Now",
+    readOnlyHint: false,
+    destructiveHint: false,
+    openWorldHint: true,
+  },
+  execute: async (args, { log }) => {
+    try {
+      const token = process.env.MEDICI_API_TOKEN;
+      if (!token) {
+        throw new Error("API token not configured");
+      }
 
-interface RoomArchiveDataResponse {
-  totalCount: number;
-  pages: number;
-  results: RoomArchiveDataResult[];
-}
+      const requestBody: ManualBookingRequest = {
+        hotelId: args.hotelId,
+        from: args.from,
+        to: args.to,
+        guestName: args.guestName,
+        room: args.room,
+        searchResult: args.searchResult
+      };
+
+      log.info("Creating manual booking", {
+        hotelId: args.hotelId,
+        dates: args.from && args.to ? `${args.from} to ${args.to}` : "not specified",
+        guestName: args.guestName || "not specified"
+      });
+
+      const response = await fetch(
+        "https://medici-backend.azurewebsites.net/api/hotels/ManualBookRoom",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(requestBody),
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API request failed: ${response.status} - ${errorText}`);
+      }
+
+      const result = await response.json() as ManualBookingResponse;
+
+      return {
+        content: [
+          {
+            type: "text",
+            text: `Manual booking created:\n\n${JSON.stringify(result, null, 2)}`
+          }
+        ]
+      };
+    } catch (error) {
+      log.error("Failed to create manual booking", { error: String(error) });
+      throw error;
+    }
+  }
+});
 
 server.addTool({
   name: "get_hotels_prices_history",
   description: "Retrieves archived room data recorded in the system with optional filters and pagination",
   parameters: z.object({
-    StayFrom: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    StayTo: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    HotelName: z.string().optional(),
-    MinPrice: z.number().int().positive().optional(),
-    MaxPrice: z.number().int().positive().optional(),
-    City: z.string().optional(),
-    RoomBoard: z.string().optional(),
-    RoomCategory: z.string().optional(),
-    MinUpdatedAt: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    MaxUpdatedAt: z.string().regex(dateRegex, "Date must be in YYYY-MM-DD format").optional(),
-    PageNumber: z.number().int().positive().default(1),
-    PageSize: z.number().int().positive().default(10000),
+    stayFrom: z.string().optional(),
+    stayTo: z.string().optional(),
+    hotelName: z.string().optional(),
+    minPrice: z.number().int().positive().optional(),
+    maxPrice: z.number().int().positive().optional(),
+    city: z.string().optional(),
+    roomBoard: z.string().optional(),
+    roomCategory: z.string().optional(),
+    minUpdatedAt: z.string().optional(),
+    maxUpdatedAt: z.string().optional(),
+    pageNumber: z.number().int(),
+    pageSize: z.number().int(),
   }),
+  annotations: {
+    title: "Hotel Price History",
+    readOnlyHint: true,
+    openWorldHint: true,
+    idempotentHint: true,
+  },
   execute: async (args, { log }) => {
     try {
       const token = process.env.MEDICI_API_TOKEN;
@@ -636,14 +789,14 @@ server.addTool({
       };
 
       log.info("Fetching room archive data", {
-        stay: args.StayFrom && args.StayTo ? `${args.StayFrom} to ${args.StayTo}` : "all dates",
-        priceRange: args.MinPrice && args.MaxPrice ? `${args.MinPrice} to ${args.MaxPrice}` : "any price",
-        hotel: args.HotelName || "any",
-        city: args.City || "any",
-        board: args.RoomBoard || "any",
-        category: args.RoomCategory || "any",
-        updatedAt: args.MinUpdatedAt && args.MaxUpdatedAt ? `${args.MinUpdatedAt} to ${args.MaxUpdatedAt}` : "any time",
-        page: `${args.PageNumber} (size: ${args.PageSize})`
+        stay: args.stayFrom && args.stayTo ? `${args.stayFrom} to ${args.stayTo}` : "all dates",
+        priceRange: args.minPrice && args.maxPrice ? `${args.minPrice} to ${args.maxPrice}` : "any price",
+        hotel: args.hotelName || "any",
+        city: args.city || "any",
+        board: args.roomBoard || "any",
+        category: args.roomCategory || "any",
+        updatedAt: args.minUpdatedAt && args.maxUpdatedAt ? `${args.minUpdatedAt} to ${args.maxUpdatedAt}` : "any time",
+        page: `${args.pageNumber} (size: ${args.pageSize})`
       });
 
       const response = await fetch(
@@ -663,22 +816,13 @@ server.addTool({
         throw new Error(`API request failed: ${response.status} - ${errorText}`);
       }
 
-      const data = (await response.json()) as RoomArchiveDataResponse;
+      const data = await response.json() as RoomArchiveResponse;
 
-      // Format the results for better readability
       return {
         content: [
           {
             type: "text",
-            text: data.totalCount === 0 
-              ? "No archived room prices found for the specified criteria."
-              : `Found ${data.totalCount} archived room prices (${data.pages} pages):\n\n${data.results.map(room => `
-- ${room.hotelName} (${room.city})
-  • Dates: ${new Date(room.startDate).toLocaleDateString()} to ${new Date(room.endDate).toLocaleDateString()}
-  • Room: ${room.roomCategory} with ${room.roomBoard}
-  • Price: ${room.price.toFixed(2)}
-  • Last Updated: ${new Date(room.priceUpdatedAt).toLocaleString()}`).join('\n')}
-${args.PageNumber < data.pages ? `\nℹ️ There are more results available. Use PageNumber ${args.PageNumber + 1} to see the next page.` : ''}`
+            text: `Room Archive Data (Page ${args.pageNumber}):\n\n${JSON.stringify(data, null, 2)}`
           }
         ]
       };
@@ -689,73 +833,9 @@ ${args.PageNumber < data.pages ? `\nℹ️ There are more results available. Use
   }
 });
 
-// Add the static hotel data tool
-server.addTool({
-  name: "get_hotels_by_ids",
-  description: "Get detailed hotel information by hotel IDs",
-  parameters: z.object({
-    hotelIds: z.array(z.number()).min(1).max(500).describe("List of hotel IDs to fetch, max 500 IDs"),
-  }),
-  execute: async (args, { log }) => {
-    try {
-      const token = process.env.MEDICI_API_TOKEN;
-      if (!token) {
-        throw new Error("API token not configured");
-      }
 
-      const hotelIds = args.hotelIds.join(",");
-      log.info("Fetching hotel data", { hotelIds });
 
-      const response = await fetch(
-        `https://static-data.innstant-servers.com/hotels/${hotelIds}`,
-        {
-          method: "GET",
-          headers: {
-            "aether-application-key": token,
-          },
-        }
-      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`API request failed: ${response.status} - ${errorText}`);
-      }
-
-      const data = (await response.json()) as StaticHotelData[];
-
-      // Format the results for better readability
-      return {
-        content: [
-          {
-            type: "text",
-            text: data.map(hotel => `
-Hotel: ${hotel.name} (${hotel.stars}★)
-ID: ${hotel.id}
-Address: ${hotel.address}, ${hotel.zip}
-Phone: ${hotel.phone}${hotel.fax ? `\nFax: ${hotel.fax}` : ''}
-Location: ${hotel.lat}, ${hotel.lon}
-Status: ${hotel.status === 1 ? 'Active' : 'Inactive'}
-
-Description:
-${hotel.description}
-
-Facilities:
-${hotel.facilities.list.join(", ")}
-
-Images: ${hotel.images.length} available
-Main Image ID: ${hotel.mainImageId}
-
-Destinations: ${hotel.destinations.map(d => `${d.type}: ${d.destinationId}`).join(", ")}
-`).join("\n\n---\n\n")
-          }
-        ]
-      };
-    } catch (error) {
-      log.error("Failed to fetch hotel data", { error: String(error) });
-      throw error;
-    }
-  }
-});
 
 // Start the server
 server.start({

@@ -6,6 +6,7 @@ export interface SearchRequest {
   paxChildren: number[];
   adults: number;
   stars?: number;
+  limit?: number;
 }
 
 export interface Price {
@@ -56,7 +57,7 @@ export interface Cancellation {
   frames: CancellationFrame[];
 }
 
-export interface SearchResult {
+export interface SearchResultItem {
   price: Price;
   netPrice: Price;
   barRate: Price | null;
@@ -74,48 +75,45 @@ export interface SearchResult {
   offer: any | null;
 }
 
+export type SearchResult = SearchResultItem[];
+
 export interface GetRoomsActiveRequest {
-  StartDate?: string;
-  EndDate?: string;
-  HotelName?: string;
-  HotelStars?: number;
-  City?: string;
-  RoomBoard?: string;
-  RoomCategory?: string;
-  Provider?: string;
+  startDate?: string;
+  endDate?: string;
+  hotelName?: string;
+  hotelStars?: number;
+  city?: string;
+  roomBoard?: string;
+  roomCategory?: string;
+  provider?: string;
 }
 
 export interface RoomActiveResult {
-  StartDate: string;
-  EndDate: string;
-  HotelName: string;
-  City: string;
-  Price: number;
-  RoomBoard: string;
-  RoomCategory: string;
-  PriceUpdatedAt: string;
-  PrebookId: number;
-  PushPrice: number;
-  ReservationFullName: string;
-  LastPrice: number;
-  DateLastPrice: string;
+  prebookId: number;
+  startDate: string;
+  endDate: string;
+  hotelName: string;
+  city?: string;
+  price: number;
+  pushPrice: number;
+  board: string;
+  category: string;
+  reservationFullName: string;
+  lastPrice: number;
+  dateLastPrice: string;
 }
 
-export interface GetRoomsActiveResponse {
-  TotalCount: number;
-  Pages: number;
-  Results: RoomActiveResult[];
-}
+export type GetRoomsActiveResponse = RoomActiveResult[];
 
 export interface GetRoomsCancelRequest {
-  StartDate?: string;
-  EndDate?: string;
-  HotelName?: string;
-  HotelStars?: number;
-  City?: string;
-  RoomBoard?: string;
-  RoomCategory?: string;
-  Provider?: string;
+  startDate?: string;
+  endDate?: string;
+  hotelName?: string;
+  hotelStars?: number;
+  city?: string;
+  roomBoard?: string;
+  roomCategory?: string;
+  provider?: string;
 }
 
 export interface RoomCancelResult {
@@ -127,20 +125,18 @@ export interface RoomCancelResult {
   board: string;
   category: string;
   reservationFullName: string;
-  cancellationTo: string;
+  dateLastPrice: string;
 }
 
 export type GetRoomsCancelResponse = RoomCancelResult[];
 
 export interface GetOpportunitiesRequest {
-  StartDate?: string;
-  EndDate?: string;
-  HotelName?: string;
-  HotelStars?: number;
-  City?: string;
-  RoomBoard?: string;
-  RoomCategory?: string;
-  Provider?: string;
+  hotelStars?: number;
+  city?: string;
+  hotelName?: string;
+  reservationMonthDate?: string;
+  checkInMonthDate?: string;
+  provider?: string;
 }
 
 export interface OpportunityResult {
@@ -160,21 +156,23 @@ export interface OpportunityResult {
 export type GetOpportunitiesResponse = OpportunityResult[];
 
 export interface InsertOpportunityRequest {
-  boardId: number;
-  categoryId: number;
+  hotelId?: number;
   startDateStr: string;
   endDateStr: string;
+  boardId: number;
+  categoryId: number;
   buyPrice: number;
   pushPrice: number;
   maxRooms: number;
   ratePlanCode?: string;
   invTypeCode?: string;
-  reservationFullName: string;
-  destinationId: number;
-  stars: number;
+  reservationFullName?: string;
+  stars?: number;
+  destinationId?: number;
   locationRange?: number;
   providerId?: number | null;
-  paxAdults: number;
+  userId?: number;
+  paxAdults?: number;
   paxChildren: number[];
 }
 
@@ -182,6 +180,41 @@ export interface InsertOpportunityResponse {
   success: boolean;
   message: string;
   id: number;
+}
+
+export interface DashboardApiParams {
+  hotelStars?: number;
+  city?: string;
+  hotelName?: string;
+  reservationMonthDate?: string;
+  checkInMonthDate?: string;
+  provider?: string;
+}
+
+export interface DashboardResponse {
+  [key: string]: any;
+}
+
+export interface ApiBooking {
+  preBookId: number;
+  pushPrice: number;
+}
+
+export interface UpdatePushPriceResponse {
+  [key: string]: any;
+}
+
+export interface ManualBookingRequest {
+  hotelId?: number;
+  from?: string;
+  to?: string;
+  guestName?: string;
+  room?: any;
+  searchResult?: any;
+}
+
+export interface ManualBookingResponse {
+  [key: string]: any;
 }
 
 export enum BoardType {
@@ -212,30 +245,6 @@ export enum RoomCategory {
   Executive = 15
 }
 
-export interface CreateManualOpportunityRequest {
-  StartDate: string;
-  EndDate: string;
-  PaxAdults: number;
-  PaxChildren: number[];
-  ReservationFirstName: string;
-  ReservationLastName: string;
-  City: string;
-  RoomCategory: string;
-  RoomBoard: string;
-  ExpectedPrice: number;
-}
-
-export interface CreateManualOpportunityResponse {
-  success: boolean;
-  message: string;
-  hotelId: number;
-  provider: string;
-  board: string;
-  roomName: string;
-  bookingSuccess: number;
-  bookingConfirmed: boolean;
-}
-
 export interface OperationResult {
   name: string;
   result: string;
@@ -244,18 +253,18 @@ export interface OperationResult {
 export type CancelRoomActiveResponse = OperationResult[];
 
 export interface RoomArchiveRequest {
-  StayFrom?: string;
-  StayTo?: string;
-  HotelName?: string;
-  MinPrice?: number;
-  MaxPrice?: number;
-  City?: string;
-  RoomBoard?: string;
-  RoomCategory?: string;
-  MinUpdatedAt?: string;
-  MaxUpdatedAt?: string;
-  PageNumber?: number;
-  PageSize?: number;
+  stayFrom?: string;
+  stayTo?: string;
+  hotelName?: string;
+  minPrice?: number;
+  maxPrice?: number;
+  city?: string;
+  roomBoard?: string;
+  roomCategory?: string;
+  minUpdatedAt?: string;
+  maxUpdatedAt?: string;
+  pageNumber: number;
+  pageSize: number;
 }
 
 export interface RoomArchiveResult {
@@ -275,7 +284,6 @@ export interface RoomArchiveResponse {
   Results: RoomArchiveResult[];
 }
 
-// Static Hotel Data Types
 export interface HotelImage {
   id: number;
   width: number;
