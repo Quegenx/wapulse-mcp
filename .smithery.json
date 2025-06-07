@@ -1,0 +1,10 @@
+{
+  "runtime": "typescript",
+  "name": "sunday-hotels-final",
+  "build": {
+    "entry": "./src/index.ts",
+    "target": "node18",
+    "minify": true,
+    "external": ["@fastmcp/core", "@valibot/to-json-schema"]
+  }
+} 

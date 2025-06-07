@@ -1,7 +1,0 @@
-runtime: "typescript"
-name: sunday-hotels-api-v3
-build:
-  entry: "./src/index.ts"
-  target: "node18"
-  minify: true
-  external: ["@fastmcp/core", "@valibot/to-json-schema"] 
