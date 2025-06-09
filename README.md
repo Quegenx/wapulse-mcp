@@ -1,6 +1,6 @@
-# FastMCP
+# WaPulse MCP Server
 
-A TypeScript framework for building [MCP](https://glama.ai/mcp) servers capable of handling client sessions.
+Provide an MCP server interface for the WaPulse WhatsApp Web API, enabling integration and interaction with WhatsApp Web through the Model Context Protocol. Facilitate seamless communication and automation for clients using MCP-compatible tools and resources.
 
 > [!NOTE]
 >
