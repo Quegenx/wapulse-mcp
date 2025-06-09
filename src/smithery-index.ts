@@ -70,11 +70,34 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 
 		// Helper function to adapt context
 		function adaptContext() {
-			return {
-				log: (level: string, message: string, meta?: any) => {
-					console.log(`[${level.toUpperCase()}] ${message}`, meta || '');
+			const logFunction = (level: string, message: string, meta?: any) => {
+				const logLevel = level.toUpperCase();
+				if (level === 'error') {
+					console.error(`[${logLevel}] ${message}`, meta || '');
+				} else if (level === 'warn') {
+					console.warn(`[${logLevel}] ${message}`, meta || '');
+				} else {
+					console.log(`[${logLevel}] ${message}`, meta || '');
 				}
 			};
+
+			// Create a function that can be called both ways
+			const log = Object.assign(logFunction, {
+				info: (message: string, meta?: any) => {
+					console.log(`[INFO] ${message}`, meta || '');
+				},
+				error: (message: string, meta?: any) => {
+					console.error(`[ERROR] ${message}`, meta || '');
+				},
+				warn: (message: string, meta?: any) => {
+					console.warn(`[WARN] ${message}`, meta || '');
+				},
+				debug: (message: string, meta?: any) => {
+					console.log(`[DEBUG] ${message}`, meta || '');
+				}
+			});
+
+			return { log };
 		}
 
 		// Register messaging tools
