@@ -2,27 +2,30 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
 
-// Import all our tool handler functions
-import { handleSendMessage } from "./tools/messaging/sendMessage.js"
-import { handleSendFiles } from "./tools/messaging/sendFiles.js"
-import { handleSendAudio } from "./tools/messaging/sendAudio.js"
-import { handleLoadChatAllMessages } from "./tools/messaging/loadChatAllMessages.js"
-import { handleIsExists } from "./tools/messaging/isExists.js"
-import { handleValidatePhoneNumber } from "./tools/messaging/validatePhoneNumber.js"
-import { handleGetAllChats } from "./tools/general/getAllChats.js"
-import { handleGetWapulseDoc } from "./tools/general/wapulseDoc.js"
-import { handleCreateGroup } from "./tools/group/createGroup.js"
-import { handleAddParticipants } from "./tools/group/addParticipants.js"
-import { handleRemoveParticipants } from "./tools/group/removeParticipants.js"
-import { handlePromoteParticipants } from "./tools/group/promoteParticipants.js"
-import { handleDemoteParticipants } from "./tools/group/demoteParticipants.js"
-import { handleLeaveGroup } from "./tools/group/leaveGroup.js"
-import { handleGetGroupInviteLink } from "./tools/group/getGroupInviteLink.js"
-import { handleChangeGroupInviteCode } from "./tools/group/changeGroupInviteCode.js"
-import { handleGetGroupRequests } from "./tools/group/getGroupRequests.js"
-import { handleRejectGroupRequest } from "./tools/group/rejectGroupRequest.js"
-import { handleApproveGroupRequest } from "./tools/group/approveGroupRequest.js"
-import { handleGetAllGroups } from "./tools/group/getAllGroups.js"
+// Import all tool definitions and handlers
+import { sendMessageTool, handleSendMessage } from "./tools/messaging/sendMessage.js"
+import { sendFilesTool, handleSendFiles } from "./tools/messaging/sendFiles.js"
+import { sendAudioTool, handleSendAudio } from "./tools/messaging/sendAudio.js"
+import { loadChatAllMessagesTool, handleLoadChatAllMessages } from "./tools/messaging/loadChatAllMessages.js"
+import { isExistsTool, handleIsExists } from "./tools/messaging/isExists.js"
+import { validatePhoneNumberTool, handleValidatePhoneNumber } from "./tools/messaging/validatePhoneNumber.js"
+
+import { getAllChatsTool, handleGetAllChats } from "./tools/general/getAllChats.js"
+import { wapulseDocTool, handleGetWapulseDoc } from "./tools/general/wapulseDoc.js"
+
+import { createGroupTool, handleCreateGroup } from "./tools/group/createGroup.js"
+import { addParticipantsTool, handleAddParticipants } from "./tools/group/addParticipants.js"
+import { removeParticipantsTool, handleRemoveParticipants } from "./tools/group/removeParticipants.js"
+import { promoteParticipantsTool, handlePromoteParticipants } from "./tools/group/promoteParticipants.js"
+import { demoteParticipantsTool, handleDemoteParticipants } from "./tools/group/demoteParticipants.js"
+import { leaveGroupTool, handleLeaveGroup } from "./tools/group/leaveGroup.js"
+import { getGroupInviteLinkTool, handleGetGroupInviteLink } from "./tools/group/getGroupInviteLink.js"
+import { changeGroupInviteCodeTool, handleChangeGroupInviteCode } from "./tools/group/changeGroupInviteCode.js"
+import { getGroupRequestsTool, handleGetGroupRequests } from "./tools/group/getGroupRequests.js"
+import { rejectGroupRequestTool, handleRejectGroupRequest } from "./tools/group/rejectGroupRequest.js"
+import { approveGroupRequestTool, handleApproveGroupRequest } from "./tools/group/approveGroupRequest.js"
+import { getAllGroupsTool, handleGetAllGroups } from "./tools/group/getAllGroups.js"
+
 import { handleCreateInstance } from "./tools/instance/createInstance.js"
 import { handleGetQrCode } from "./tools/instance/getQrCode.js"
 import { handleStartInstance } from "./tools/instance/startInstance.js"
@@ -36,152 +39,241 @@ export const configSchema = z.object({
 
 export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 	try {
-		console.log("Starting WaPulse MCP Server...")
+		console.log("🚀 Starting WaPulse MCP Server with all 25 tools...")
 
-		// Create a new MCP server
 		const server = new McpServer({
 			name: "WaPulse WhatsApp MCP Server",
-			version: "1.0.0",
+			version: "2.0.0",
 		})
 
-		// Simple test tool to verify the server works
-		server.tool(
-			"test_wapulse_connection",
-			"Test the WaPulse server connection and configuration",
-			{
-				message: z.string().optional().default("Hello from WaPulse MCP!").describe("Test message"),
-			},
-			async ({ message }) => {
+		// Helper function to convert tool response to MCP format
+		function convertResponse(result: any) {
+			if (result && result.content && Array.isArray(result.content)) {
 				return {
-					content: [{
-						type: "text" as const,
-						text: `✅ WaPulse MCP Server is running!\n\n🔧 Configuration:\n- Token: ${config.wapulseToken.substring(0, 8)}...\n- Instance ID: ${config.wapulseInstanceID}\n\n💬 Test Message: ${message}\n\n🚀 Server Status: READY`
-					}]
-				}
+					content: result.content.map((item: any) => ({
+						type: item.type || "text",
+						text: item.text || item.data || JSON.stringify(item)
+					}))
+				};
 			}
-		)
+			return {
+				content: [{
+					type: "text" as const,
+					text: JSON.stringify(result, null, 2)
+				}]
+			};
+		}
 
-		// Send message tool
-		server.tool(
-			"send_whatsapp_message",
-			"Send a WhatsApp message to a specific phone number or group using WaPulse API",
-			{
-				to: z.string().regex(/^\d{1,4}\d{6,15}$/).describe("Phone number in international format (e.g., 1234567890)"),
-				message: z.string().min(1).max(4096).describe("Message content"),
-				type: z.enum(["user", "group"]).default("user").describe("Message type"),
-			},
-			async ({ to, message, type }) => {
-				try {
-					// Make API request to WaPulse
-					const response = await fetch('https://wapulse.com/api/sendMessage', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
-							token: config.wapulseToken,
-							instanceID: config.wapulseInstanceID,
-							to,
-							message,
-							type
-						})
-					})
-
-					const result = await response.json() as any
-
-					if (!response.ok) {
-						throw new Error(`API Error: ${result.message || 'Unknown error'}`)
-					}
-
-					return {
-						content: [{
-							type: "text" as const,
-							text: `✅ Message sent successfully!\n\n📱 To: ${to}\n💬 Message: "${message}"\n📊 Response: ${JSON.stringify(result, null, 2)}`
-						}]
-					}
-				} catch (error: any) {
-					return {
-						content: [{
-							type: "text" as const,
-							text: `❌ Failed to send message: ${error.message}`
-						}]
-					}
+		// Helper function to adapt context
+		function adaptContext() {
+			return {
+				log: (level: string, message: string, meta?: any) => {
+					console.log(`[${level.toUpperCase()}] ${message}`, meta || '');
 				}
+			};
+		}
+
+		// Register messaging tools
+		server.tool(sendMessageTool.name, sendMessageTool.description, {
+			to: z.string().regex(/^\d{1,4}\d{6,15}$/),
+			message: z.string().min(1).max(4096),
+			type: z.enum(['user', 'group']).default('user'),
+			customToken: z.string().optional(),
+			customInstanceID: z.string().optional()
+		}, sendMessageTool.annotations, async (args) => {
+			const { customToken, customInstanceID, ...restArgs } = args;
+			const token = customToken || config.wapulseToken;
+			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const result = await handleSendMessage({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
+			return convertResponse(result);
+		});
+
+		server.tool(sendFilesTool.name, sendFilesTool.description, {
+			to: z.string().regex(/^\d{1,4}\d{6,15}$/),
+			files: z.array(z.object({
+				file: z.string(),
+				filename: z.string(),
+				caption: z.string().optional()
+			})).min(1).max(10),
+			customToken: z.string().optional(),
+			customInstanceID: z.string().optional()
+		}, sendFilesTool.annotations, async (args) => {
+			const { customToken, customInstanceID, ...restArgs } = args;
+			const token = customToken || config.wapulseToken;
+			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const result = await handleSendFiles({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
+			return convertResponse(result);
+		});
+
+		server.tool(sendAudioTool.name, sendAudioTool.description, {
+			to: z.string().regex(/^\d{1,4}\d{6,15}$/),
+			audio: z.object({
+				file: z.string(),
+				filename: z.string(),
+				caption: z.string().optional(),
+				isVoiceNote: z.boolean().default(false)
+			}),
+			customToken: z.string().optional(),
+			customInstanceID: z.string().optional()
+		}, sendAudioTool.annotations, async (args) => {
+			const { customToken, customInstanceID, ...restArgs } = args;
+			const token = customToken || config.wapulseToken;
+			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const result = await handleSendAudio({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
+			return convertResponse(result);
+		});
+
+		server.tool(loadChatAllMessagesTool.name, loadChatAllMessagesTool.description, {
+			id: z.string(),
+			type: z.enum(['user', 'group']),
+			until: z.string().optional(),
+			customToken: z.string().optional(),
+			customInstanceID: z.string().optional()
+		}, loadChatAllMessagesTool.annotations, async (args) => {
+			const { customToken, customInstanceID, ...restArgs } = args;
+			const token = customToken || config.wapulseToken;
+			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const result = await handleLoadChatAllMessages({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
+			return convertResponse(result);
+		});
+
+		server.tool(isExistsTool.name, isExistsTool.description, {
+			value: z.string(),
+			type: z.enum(['user', 'group']),
+			customToken: z.string().optional(),
+			customInstanceID: z.string().optional()
+		}, isExistsTool.annotations, async (args) => {
+			const { customToken, customInstanceID, ...restArgs } = args;
+			const token = customToken || config.wapulseToken;
+			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const result = await handleIsExists({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
+			return convertResponse(result);
+		});
+
+		server.tool(validatePhoneNumberTool.name, validatePhoneNumberTool.description, {
+			phoneNumber: z.string()
+		}, validatePhoneNumberTool.annotations, async (args) => {
+			const result = await handleValidatePhoneNumber(args);
+			return convertResponse(result);
+		});
+
+		// Register general tools
+		server.tool(getAllChatsTool.name, getAllChatsTool.description, {
+			customToken: z.string().optional(),
+			customInstanceID: z.string().optional()
+		}, getAllChatsTool.annotations, async (args) => {
+			const token = args.customToken || config.wapulseToken;
+			const instanceID = args.customInstanceID || config.wapulseInstanceID;
+			const result = await handleGetAllChats({ customToken: token, customInstanceID: instanceID }, adaptContext());
+			return convertResponse(result);
+		});
+
+		server.tool(wapulseDocTool.name, wapulseDocTool.description, {
+			section: z.enum(['overview', 'authentication', 'messaging', 'groups', 'instances', 'webhooks', 'errors', 'rate-limits', 'examples']).optional(),
+			search: z.string().min(2).max(100).optional()
+		}, wapulseDocTool.annotations, async (args) => {
+			const result = await handleGetWapulseDoc(args, adaptContext());
+			return convertResponse(result);
+		});
+
+		// Register group tools (12 tools)
+		const groupTools = [
+			{ tool: createGroupTool, handler: handleCreateGroup },
+			{ tool: addParticipantsTool, handler: handleAddParticipants },
+			{ tool: removeParticipantsTool, handler: handleRemoveParticipants },
+			{ tool: promoteParticipantsTool, handler: handlePromoteParticipants },
+			{ tool: demoteParticipantsTool, handler: handleDemoteParticipants },
+			{ tool: leaveGroupTool, handler: handleLeaveGroup },
+			{ tool: getGroupInviteLinkTool, handler: handleGetGroupInviteLink },
+			{ tool: changeGroupInviteCodeTool, handler: handleChangeGroupInviteCode },
+			{ tool: getGroupRequestsTool, handler: handleGetGroupRequests },
+			{ tool: rejectGroupRequestTool, handler: handleRejectGroupRequest },
+			{ tool: approveGroupRequestTool, handler: handleApproveGroupRequest },
+			{ tool: getAllGroupsTool, handler: handleGetAllGroups }
+		];
+
+		groupTools.forEach(({ tool, handler }) => {
+			// Create appropriate schema based on tool requirements
+			let schema: any = {
+				id: z.string().min(1),
+				customToken: z.string().optional(),
+				customInstanceID: z.string().optional()
+			};
+
+			// Add specific fields for different tool types
+			if (tool.name.includes('participants') || tool.name.includes('request')) {
+				const fieldName = tool.name.includes('request') ? 'numbers' : 'participants';
+				const maxItems = tool.name.includes('promote') || tool.name.includes('demote') || tool.name.includes('request') ? 20 : 50;
+				schema[fieldName] = z.array(z.string().regex(/^\d{1,4}\d{6,15}$/)).min(1).max(maxItems);
 			}
-		)
 
-		// Validate phone number tool
-		server.tool(
-			"validate_phone_number",
-			"Validate if a phone number is in the correct format for WaPulse API",
-			{
-				phoneNumber: z.string().describe("Phone number to validate"),
-			},
-			async ({ phoneNumber }) => {
-				const isValid = /^\d{7,19}$/.test(phoneNumber)
-				
-				if (isValid) {
-					return {
-						content: [{
-							type: "text" as const,
-							text: `✅ Phone number is valid!\n\n📱 Number: ${phoneNumber}\n📊 Status: VALID`
-						}]
-					}
-				} else {
-					return {
-						content: [{
-							type: "text" as const,
-							text: `❌ Phone number is invalid!\n\n📱 Number: ${phoneNumber}\n🚫 Error: Must be 7-19 digits\n📊 Status: INVALID`
-						}]
-					}
-				}
+			if (tool.name === 'create_whatsapp_group') {
+				schema = {
+					name: z.string().min(1).max(100),
+					participants: z.array(z.string().regex(/^\d{1,4}\d{6,15}$/)).min(1).max(256),
+					customToken: z.string().optional(),
+					customInstanceID: z.string().optional()
+				};
 			}
-		)
 
-		// Get all chats tool
-		server.tool(
-			"get_all_chats",
-			"Get all WhatsApp chats (individual and group conversations) for an instance using WaPulse API",
-			{},
-			async () => {
-				try {
-					const response = await fetch('https://wapulse.com/api/getAllChats', {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
-							token: config.wapulseToken,
-							instanceID: config.wapulseInstanceID
-						})
-					})
+			server.tool(tool.name, tool.description, schema, tool.annotations, async (args) => {
+				const { customToken, customInstanceID, ...restArgs } = args;
+				const token = customToken || config.wapulseToken;
+				const instanceID = customInstanceID || config.wapulseInstanceID;
+				const result = await handler({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
+				return convertResponse(result);
+			});
+		});
 
-					const result = await response.json() as any
+		// Register instance tools (5 tools)
+		server.tool("create_instance", "Create a new WhatsApp instance", {
+			token: z.string().min(1)
+		}, { title: "Create Instance" }, async (args) => {
+			const result = await handleCreateInstance(args, adaptContext());
+			return convertResponse(result);
+		});
 
-					if (!response.ok) {
-						throw new Error(`API Error: ${result.message || 'Unknown error'}`)
-					}
+		server.tool("get_qr_code", "Get QR code for WhatsApp Web connection", {
+			token: z.string().min(1),
+			instanceID: z.string().min(1)
+		}, { title: "Get QR Code", readOnlyHint: true }, async (args) => {
+			const result = await handleGetQrCode(args, adaptContext());
+			return convertResponse(result);
+		});
 
-					return {
-						content: [{
-							type: "text" as const,
-							text: `📱 All Chats Retrieved\n\n📊 Response: ${JSON.stringify(result, null, 2)}`
-						}]
-					}
-				} catch (error: any) {
-					return {
-						content: [{
-							type: "text" as const,
-							text: `❌ Failed to get chats: ${error.message}`
-						}]
-					}
-				}
-			}
-		)
+		server.tool("start_instance", "Start a WhatsApp instance to begin receiving and sending messages", {
+			token: z.string().min(1),
+			instanceID: z.string().min(1)
+		}, { title: "Start Instance" }, async (args) => {
+			const result = await handleStartInstance(args, adaptContext());
+			return convertResponse(result);
+		});
+
+		server.tool("stop_instance", "Stop a running WhatsApp instance", {
+			token: z.string().min(1),
+			instanceID: z.string().min(1)
+		}, { title: "Stop Instance" }, async (args) => {
+			const result = await handleStopInstance(args, adaptContext());
+			return convertResponse(result);
+		});
+
+		server.tool("delete_instance", "Permanently delete a WhatsApp instance", {
+			token: z.string().min(1),
+			instanceID: z.string().min(1)
+		}, { title: "Delete Instance", destructiveHint: true }, async (args) => {
+			const result = await handleDeleteInstance(args, adaptContext());
+			return convertResponse(result);
+		});
+
+		console.log("✅ Registered all 25 tools successfully!");
+		console.log("📱 Messaging (6): send_whatsapp_message, send_whatsapp_files, send_whatsapp_audio, load_chat_messages, check_id_exists, validate_phone_number");
+		console.log("💬 General (2): get_all_chats, get_wapulse_documentation");
+		console.log("👥 Group (12): create_whatsapp_group, add_group_participants, remove_group_participants, promote_group_participants, demote_group_participants, leave_whatsapp_group, get_group_invite_link, change_group_invite_code, get_group_requests, reject_group_request, approve_group_request, get_all_groups");
+		console.log("🏗️ Instance (5): create_instance, get_qr_code, start_instance, stop_instance, delete_instance");
 
 		return server.server
 	} catch (e) {
-		console.error(e)
+		console.error("❌ Failed to start server:", e)
 		throw e
 	}
 } 
