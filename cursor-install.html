@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Install WaPulse MCP Server in Cursor</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
+        .config { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
+        .button { background: #007acc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0; }
+        .button:hover { background: #005a9e; }
+        code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; }
+    </style>
+</head>
+<body>
+    <h1>Install WaPulse MCP Server in Cursor</h1>
+    
+    <h2>Option 1: NPX Installation (Recommended)</h2>
+    <p>Use this configuration for direct NPX installation:</p>
+    
+    <div class="config">
+        <pre>{
+  "wapulse-whatsapp": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "wapulse-whatsapp-mcp-server@latest"
+    ],
+    "env": {
+      "WAPULSE_TOKEN": "your-wapulse-token-here",
+      "WAPULSE_INSTANCE_ID": "your-instance-id-here"
+    }
+  }
+}</pre>
+    </div>
+    
+    <p><strong>Before clicking the install link:</strong></p>
+    <ol>
+        <li>Replace <code>your-wapulse-token-here</code> with your actual WaPulse API token</li>
+        <li>Replace <code>your-instance-id-here</code> with your actual WaPulse instance ID</li>
+    </ol>
+    
+    <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=wapulse-whatsapp&config=ewogICJ3YXB1bHNlLXdoYXRzYXBwIjogewogICAgImNvbW1hbmQiOiAibnB4IiwKICAgICJhcmdzIjogWwogICAgICAiLXkiLAogICAgICAid2FwdWxzZS13aGF0c2FwcC1tY3Atc2VydmVyQGxhdGVzdCIKICAgIF0sCiAgICAiZW52IjogewogICAgICAiV0FQVUXTRV9UT0tFTiI6ICJ5b3VyLXdhcHVsc2UtdG9rZW4taGVyZSIsCiAgICAgICJXQVBVTFNFX0lOU1RBTkNFX0lEIjogInlvdXItaW5zdGFuY2UtaWQtaGVyZSIKICAgIH0KICB9Cn0=" class="button">
+        📱 Add WaPulse MCP Server to Cursor
+    </a>
+    
+    <h2>Option 2: Smithery Cloud</h2>
+    <p>For Smithery cloud deployment (requires Smithery account):</p>
+    
+    <div class="config">
+        <pre>{
+  "wapulse-whatsapp-smithery": {
+    "command": "npx",
+    "args": [
+      "-y",
+      "@smithery/cli@latest",
+      "run",
+      "@Quegenx/wapulse-whatsapp-mcp",
+      "--key",
+      "your-smithery-key",
+      "--profile",
+      "your-profile"
+    ]
+  }
+}</pre>
+    </div>
+    
+    <h2>Manual Installation</h2>
+    <p>Alternatively, you can manually add this to your <code>~/.cursor/mcp.json</code> file:</p>
+    
+    <div class="config">
+        <pre>{
+  "mcpServers": {
+    "wapulse-whatsapp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "wapulse-whatsapp-mcp-server@latest"
+      ],
+      "env": {
+        "WAPULSE_TOKEN": "your-wapulse-token-here",
+        "WAPULSE_INSTANCE_ID": "your-instance-id-here"
+      }
+    }
+  }
+}</pre>
+    </div>
+    
+    <h2>Getting Your Credentials</h2>
+    <ol>
+        <li>Visit <a href="https://wapulse.com" target="_blank">WaPulse.com</a></li>
+        <li>Create an account and get your API token</li>
+        <li>Create a WhatsApp instance and note the instance ID</li>
+        <li>Replace the placeholder values in the configuration above</li>
+    </ol>
+    
+    <h2>Available Tools (25 total)</h2>
+    <ul>
+        <li><strong>Messaging:</strong> Send messages, files, audio, validate phone numbers</li>
+        <li><strong>Groups:</strong> Create, manage participants, admin controls</li>
+        <li><strong>Instances:</strong> Create, start, stop, delete WhatsApp instances</li>
+        <li><strong>General:</strong> Get chats, documentation, phone validation</li>
+    </ul>
+</body>
+</html> 

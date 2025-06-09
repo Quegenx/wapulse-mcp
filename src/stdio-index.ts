@@ -124,7 +124,7 @@ function convertResponse(result: any) {
 
 // All available tools
 const allTools = [
-  // Messaging tools
+  // Messaging tools (6)
   sendMessageTool,
   sendFilesTool,
   sendAudioTool,
@@ -132,11 +132,11 @@ const allTools = [
   isExistsTool,
   validatePhoneNumberTool,
   
-  // General tools
+  // General tools (2)
   getAllChatsTool,
   wapulseDocTool,
   
-  // Group tools
+  // Group tools (12)
   createGroupTool,
   addParticipantsTool,
   removeParticipantsTool,
@@ -148,7 +148,73 @@ const allTools = [
   getGroupRequestsTool,
   rejectGroupRequestTool,
   approveGroupRequestTool,
-  getAllGroupsTool
+  getAllGroupsTool,
+  
+  // Instance tools (5) - manually defined since they don't have tool objects
+  {
+    name: 'create_instance',
+    description: 'Create a new WhatsApp instance',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string', description: 'WaPulse API token' }
+      },
+      required: ['token'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'get_qr_code',
+    description: 'Get QR code for WhatsApp Web connection',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string', description: 'WaPulse API token' },
+        instanceID: { type: 'string', description: 'WhatsApp instance ID' }
+      },
+      required: ['token', 'instanceID'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'start_instance',
+    description: 'Start a WhatsApp instance to begin receiving and sending messages',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string', description: 'WaPulse API token' },
+        instanceID: { type: 'string', description: 'WhatsApp instance ID' }
+      },
+      required: ['token', 'instanceID'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'stop_instance',
+    description: 'Stop a running WhatsApp instance',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string', description: 'WaPulse API token' },
+        instanceID: { type: 'string', description: 'WhatsApp instance ID' }
+      },
+      required: ['token', 'instanceID'],
+      additionalProperties: false
+    }
+  },
+  {
+    name: 'delete_instance',
+    description: 'Permanently delete a WhatsApp instance',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        token: { type: 'string', description: 'WaPulse API token' },
+        instanceID: { type: 'string', description: 'WhatsApp instance ID' }
+      },
+      required: ['token', 'instanceID'],
+      additionalProperties: false
+    }
+  }
 ];
 
 // List tools handler
