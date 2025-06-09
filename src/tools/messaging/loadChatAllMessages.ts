@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError, imageContent } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest } from '../../utils/helpers.js';
 
 export const loadChatAllMessagesTool: Tool = {
@@ -107,8 +107,10 @@ export async function handleLoadChatAllMessages(args: any, context?: any) {
             text: `📷 [${timestamp}] ${from}: Image message\n` 
           });
           try {
-            const imgContent = await imageContent({ url: msg.mediaUrl });
-            await streamContent(imgContent);
+            await streamContent({ 
+              type: 'text', 
+              text: `   🖼️ Image URL: ${msg.mediaUrl}\n` 
+            });
           } catch (error) {
             await streamContent({ 
               type: 'text', 
@@ -152,6 +154,6 @@ export async function handleLoadChatAllMessages(args: any, context?: any) {
     if (log) {
       log.error("Failed to load chat messages", { error: error.message, chatId: id, type });
     }
-    throw new UserError(`Failed to load messages from ${type} chat ${id}: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to load messages from ${type} chat ${id}: ${error.message}`);
   }
 } 

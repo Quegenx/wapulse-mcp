@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { makeApiRequest } from "../../utils/helpers.js";
-import { UserError } from "fastmcp";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { CreateInstanceRequest, CreateInstanceResponse } from "../../types/api.js";
 
 export const createInstanceSchema = z.object({
@@ -57,10 +57,10 @@ export async function handleCreateInstance(
       log("error", "Failed to create instance", { error: (error as Error).message, token: token.substring(0, 8) + "..." });
     }
     
-    if (error instanceof UserError) {
+    if (error instanceof McpError) {
       throw error;
     }
     
-    throw new UserError(`Failed to create WhatsApp instance: ${(error as Error).message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to create WhatsApp instance: ${(error as Error).message}`);
   }
 } 

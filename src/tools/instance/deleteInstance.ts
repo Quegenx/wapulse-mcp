@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { makeApiRequest } from "../../utils/helpers.js";
-import { UserError } from "fastmcp";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { DeleteInstanceRequest, DeleteInstanceResponse } from "../../types/api.js";
 
 export const deleteInstanceSchema = z.object({
@@ -68,10 +68,10 @@ export async function handleDeleteInstance(
       });
     }
     
-    if (error instanceof UserError) {
+    if (error instanceof McpError) {
       throw error;
     }
     
-    throw new UserError(`Failed to delete WhatsApp instance ${instanceID}: ${(error as Error).message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to delete WhatsApp instance ${instanceID}: ${(error as Error).message}`);
   }
 } 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest, validatePhoneNumber, formatPhoneNumber } from '../../utils/helpers.js';
 
 export const sendFilesTool: Tool = {
@@ -79,13 +79,13 @@ export async function handleSendFiles(args: any, context?: any) {
   // Validate phone number format
   const isValid = validatePhoneNumber(to);
   if (!isValid) {
-    throw new UserError(`Invalid phone number format: ${to}. Use format: country code + number (e.g., 972512345678) - no + sign, no spaces`);
+          throw new McpError(ErrorCode.InvalidParams, `Invalid phone number format: ${to}. Use format: country code + number (e.g., 972512345678) - no + sign, no spaces`);
   }
 
   // Validate file data format
   for (const file of files) {
     if (!file.file.startsWith('data:')) {
-      throw new UserError(`Invalid file format for "${file.filename}". File must be base64 encoded with data URI prefix (e.g., 'data:image/jpeg;base64,...')`);
+              throw new McpError(ErrorCode.InvalidParams, `Invalid file format for "${file.filename}". File must be base64 encoded with data URI prefix (e.g., 'data:image/jpeg;base64,...')`);
     }
   }
 
@@ -132,6 +132,6 @@ export async function handleSendFiles(args: any, context?: any) {
     if (log) {
       log.error("Failed to send files", { error: error.message, to, fileCount: files.length });
     }
-    throw new UserError(`Failed to send files to ${formatPhoneNumber(to)}: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to send files to ${formatPhoneNumber(to)}: ${error.message}`);
   }
 } 

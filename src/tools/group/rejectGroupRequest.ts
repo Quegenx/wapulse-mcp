@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest, validateParticipants, formatPhoneNumber } from '../../utils/helpers.js';
 
 export const rejectGroupRequestTool: Tool = {
@@ -89,6 +89,6 @@ export async function handleRejectGroupRequest(args: any, context?: any) {
     if (log) {
       log.error("Failed to reject group requests", { error: error.message, groupId: id, requestCount: numbers.length });
     }
-    throw new UserError(`Failed to reject group requests for group ${id}: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to reject group requests for group ${id}: ${error.message}`);
   }
 } 

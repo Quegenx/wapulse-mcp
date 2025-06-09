@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest } from '../../utils/helpers.js';
 
 export const leaveGroupTool: Tool = {
@@ -67,6 +67,6 @@ export async function handleLeaveGroup(args: any, context?: any) {
     if (log) {
       log.error("Failed to leave group", { error: error.message, groupId: id });
     }
-    throw new UserError(`Failed to leave WhatsApp group ${id}: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to leave WhatsApp group ${id}: ${error.message}`);
   }
 } 

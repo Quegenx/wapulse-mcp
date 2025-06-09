@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest, validateParticipants, formatPhoneNumber } from '../../utils/helpers.js';
 
 export const addParticipantsTool: Tool = {
@@ -88,6 +88,6 @@ export async function handleAddParticipants(args: any, context?: any) {
     if (log) {
       log.error("Failed to add participants", { error: error.message, groupId: id, participantCount: participants.length });
     }
-    throw new UserError(`Failed to add participants to group ${id}: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to add participants to group ${id}: ${error.message}`);
   }
 } 

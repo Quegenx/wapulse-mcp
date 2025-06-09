@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest, validatePhoneNumber, formatPhoneNumber } from '../../utils/helpers.js';
 
 export const sendMessageTool: Tool = {
@@ -63,7 +63,7 @@ export async function handleSendMessage(args: any, context?: any) {
   // Validate phone number format
   const isValid = validatePhoneNumber(to);
   if (!isValid) {
-    throw new UserError(`Invalid phone number format: ${to}. Use format: country code + number (e.g., 972512345678) - no + sign, no spaces`);
+          throw new McpError(ErrorCode.InvalidParams, `Invalid phone number format: ${to}. Use format: country code + number (e.g., 972512345678) - no + sign, no spaces`);
   }
 
   const { log } = context || {};
@@ -99,6 +99,6 @@ export async function handleSendMessage(args: any, context?: any) {
     if (log) {
       log.error("Failed to send message", { error: error.message, to });
     }
-    throw new UserError(`Failed to send message to ${formatPhoneNumber(to)}: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to send message to ${formatPhoneNumber(to)}: ${error.message}`);
   }
 } 

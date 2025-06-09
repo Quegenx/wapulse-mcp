@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { makeApiRequest } from "../../utils/helpers.js";
-import { UserError } from "fastmcp";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { GetQrCodeRequest, GetQrCodeResponse } from "../../types/api.js";
 
 export const getQrCodeSchema = z.object({
@@ -70,10 +70,10 @@ ${response.qrCode ? `🔗 QR Code Data: ${response.qrCode.substring(0, 100)}${qr
       });
     }
     
-    if (error instanceof UserError) {
+    if (error instanceof McpError) {
       throw error;
     }
     
-    throw new UserError(`Failed to retrieve QR code for instance ${instanceID}: ${(error as Error).message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to retrieve QR code for instance ${instanceID}: ${(error as Error).message}`);
   }
 } 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest, validateParticipants, formatPhoneNumber } from '../../utils/helpers.js';
 
 export const createGroupTool: Tool = {
@@ -90,6 +90,6 @@ export async function handleCreateGroup(args: any, context?: any) {
     if (log) {
       log.error("Failed to create group", { error: error.message, name, participantCount: participants.length });
     }
-    throw new UserError(`Failed to create WhatsApp group "${name}": ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to create WhatsApp group "${name}": ${error.message}`);
   }
 } 

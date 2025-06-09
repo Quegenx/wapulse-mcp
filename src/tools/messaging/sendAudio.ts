@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest, validatePhoneNumber, formatPhoneNumber } from '../../utils/helpers.js';
 
 export const sendAudioTool: Tool = {
@@ -80,12 +80,12 @@ export async function handleSendAudio(args: any, context?: any) {
   // Validate phone number format
   const isValid = validatePhoneNumber(to);
   if (!isValid) {
-    throw new UserError(`Invalid phone number format: ${to}. Use format: country code + number (e.g., 972512345678) - no + sign, no spaces`);
+          throw new McpError(ErrorCode.InvalidParams, `Invalid phone number format: ${to}. Use format: country code + number (e.g., 972512345678) - no + sign, no spaces`);
   }
 
   // Validate audio file format
   if (!audio.file.startsWith('data:audio/')) {
-    throw new UserError(`Invalid audio format for "${audio.filename}". File must be base64 encoded audio with data URI prefix (e.g., 'data:audio/mpeg;base64,...')`);
+    throw new McpError(ErrorCode.InvalidParams, `Invalid audio format for "${audio.filename}". File must be base64 encoded audio with data URI prefix (e.g., 'data:audio/mpeg;base64,...')`);
   }
 
   // Validate audio file extensions
@@ -95,7 +95,7 @@ export async function handleSendAudio(args: any, context?: any) {
   );
   
   if (!hasValidExtension) {
-    throw new UserError(`Invalid audio file extension for "${audio.filename}". Supported formats: ${audioExtensions.join(', ')}`);
+    throw new McpError(ErrorCode.InvalidParams, `Invalid audio file extension for "${audio.filename}". Supported formats: ${audioExtensions.join(', ')}`);
   }
 
   const { log, reportProgress } = context || {};
@@ -159,6 +159,6 @@ export async function handleSendAudio(args: any, context?: any) {
         filename: audio.filename 
       });
     }
-    throw new UserError(`Failed to send audio to ${formatPhoneNumber(to)}: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to send audio to ${formatPhoneNumber(to)}: ${error.message}`);
   }
 } 

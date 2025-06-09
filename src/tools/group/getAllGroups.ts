@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest } from '../../utils/helpers.js';
 
 interface GroupInfo {
@@ -115,6 +115,6 @@ export async function handleGetAllGroups(args: any, context?: any) {
     if (log) {
       log.error("Failed to get all groups", { error: error.message });
     }
-    throw new UserError(`Failed to get all WhatsApp groups: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to get all WhatsApp groups: ${error.message}`);
   }
 } 

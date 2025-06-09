@@ -1,4 +1,4 @@
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 // Simple in-memory rate limiting
 const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
@@ -72,7 +72,7 @@ export function checkRateLimit(userId: string, rateLimit: AuthenticatedUser['rat
   const minuteData = rateLimitMap.get(minuteKey) || { count: 0, resetTime: now + 60000 };
   
   if (minuteData.count >= limits.requestsPerMinute) {
-    throw new UserError(`Rate limit exceeded: ${limits.requestsPerMinute} requests per minute. Try again in ${Math.ceil((minuteData.resetTime - now) / 1000)} seconds.`);
+    throw new McpError(ErrorCode.InternalError, `Rate limit exceeded: ${limits.requestsPerMinute} requests per minute. Try again in ${Math.ceil((minuteData.resetTime - now) / 1000)} seconds.`);
   }
   
   // Check hour-based rate limit
@@ -80,7 +80,7 @@ export function checkRateLimit(userId: string, rateLimit: AuthenticatedUser['rat
   const hourData = rateLimitMap.get(hourKey) || { count: 0, resetTime: now + 3600000 };
   
   if (hourData.count >= limits.requestsPerHour) {
-    throw new UserError(`Rate limit exceeded: ${limits.requestsPerHour} requests per hour. Try again in ${Math.ceil((hourData.resetTime - now) / 60000)} minutes.`);
+    throw new McpError(ErrorCode.InternalError, `Rate limit exceeded: ${limits.requestsPerHour} requests per hour. Try again in ${Math.ceil((hourData.resetTime - now) / 60000)} minutes.`);
   }
   
   // Update counters
@@ -107,6 +107,6 @@ export function checkPermission(user: AuthenticatedUser, permission: string): bo
 
 export function requirePermission(user: AuthenticatedUser, permission: string): void {
   if (!checkPermission(user, permission)) {
-    throw new UserError(`Access denied. Required permission: ${permission}`);
+    throw new McpError(ErrorCode.InternalError, `Access denied. Required permission: ${permission}`);
   }
 } 

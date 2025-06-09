@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { makeApiRequest } from "../../utils/helpers.js";
-import { UserError } from "fastmcp";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js'; 
 import type { StopInstanceRequest, StopInstanceResponse } from "../../types/api.js";
 
 export const stopInstanceSchema = z.object({
@@ -71,10 +71,10 @@ export async function handleStopInstance(
       });
     }
     
-    if (error instanceof UserError) {
+    if (error instanceof McpError) {
       throw error;
     }
     
-    throw new UserError(`Failed to stop WhatsApp instance ${instanceID}: ${(error as Error).message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to stop WhatsApp instance ${instanceID}: ${(error as Error).message}`);
   }
 } 

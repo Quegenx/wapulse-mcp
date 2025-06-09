@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest } from '../../utils/helpers.js';
 
 export const changeGroupInviteCodeTool: Tool = {
@@ -69,6 +69,6 @@ export async function handleChangeGroupInviteCode(args: any, context?: any) {
     if (log) {
       log.error("Failed to change group invite code", { error: error.message, groupId: id });
     }
-    throw new UserError(`Failed to change invite code for group ${id}: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to change invite code for group ${id}: ${error.message}`);
   }
 } 

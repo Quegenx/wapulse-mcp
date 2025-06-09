@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest, formatPhoneNumber } from '../../utils/helpers.js';
 
 interface Chat {
@@ -143,6 +143,6 @@ export async function handleGetAllChats(args: any, context?: any) {
     if (log) {
       log.error("Failed to get all chats", { error: error.message });
     }
-    throw new UserError(`Failed to get all WhatsApp chats: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to get all WhatsApp chats: ${error.message}`);
   }
 } 

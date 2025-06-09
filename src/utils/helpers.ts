@@ -1,4 +1,4 @@
-import { UserError } from "fastmcp";
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import type { InstanceConfig } from "../types/api.js";
 
 // Phone number validation regex (country code + number, no + sign, no spaces)
@@ -39,12 +39,12 @@ export function formatPhoneNumber(phoneNumber: string): string {
 // Helper function to validate participants array
 export function validateParticipants(participants: string[]): void {
   if (participants.length === 0) {
-    throw new UserError("At least one participant must be provided.");
+    throw new McpError(ErrorCode.InvalidParams, "At least one participant must be provided.");
   }
   
   for (const participant of participants) {
     if (!validatePhoneNumber(participant)) {
-      throw new UserError(`Invalid phone number format: ${participant}. Use format: country code + number (e.g., 353871234567) - no + sign, no spaces`);
+      throw new McpError(ErrorCode.InvalidParams, `Invalid phone number format: ${participant}. Use format: country code + number (e.g., 353871234567) - no + sign, no spaces`);
     }
   }
 }
@@ -84,11 +84,11 @@ export async function makeApiRequest(
   const instanceID = customInstanceID || config.instanceID;
   
   if (!token) {
-    throw new UserError("WaPulse token not configured. Please set WAPULSE_TOKEN environment variable or provide customToken parameter.");
+    throw new McpError(ErrorCode.InvalidParams, "WaPulse token not configured. Please set WAPULSE_TOKEN environment variable or provide customToken parameter.");
   }
 
   if (!instanceID) {
-    throw new UserError("WaPulse instance ID not configured. Please set WAPULSE_INSTANCE_ID environment variable or provide customInstanceID parameter.");
+    throw new McpError(ErrorCode.InvalidParams, "WaPulse instance ID not configured. Please set WAPULSE_INSTANCE_ID environment variable or provide customInstanceID parameter.");
   }
   
   const url = `${config.baseUrl}${endpoint}`;
@@ -112,7 +112,7 @@ export async function makeApiRequest(
   
   if (!response.ok) {
     const errorMessage = handleApiError(response, responseText);
-    throw new UserError(errorMessage);
+    throw new McpError(ErrorCode.InternalError, errorMessage);
   }
 
   try {

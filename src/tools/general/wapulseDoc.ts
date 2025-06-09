@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 
 export const wapulseDocTool: Tool = {
   name: 'get_wapulse_documentation',
@@ -549,7 +549,7 @@ api.send_message('972512345678', 'Hello from Python!')
     if (section) {
       const docSection = docSections[section as keyof typeof docSections];
       if (!docSection) {
-        throw new UserError(`Documentation section '${section}' not found. Available sections: ${Object.keys(docSections).join(', ')}`);
+        throw new McpError(ErrorCode.InvalidParams, `Documentation section '${section}' not found. Available sections: ${Object.keys(docSections).join(', ')}`);
       }
 
       if (log) {
@@ -590,7 +590,7 @@ api.send_message('972512345678', 'Hello from Python!')
       }
 
       if (searchResults.length === 0) {
-        throw new UserError(`No documentation found for search term: "${search}"`);
+        throw new McpError(ErrorCode.InvalidParams, `No documentation found for search term: "${search}"`);
       }
 
       if (log) {
@@ -647,10 +647,10 @@ ${overview}
       log('error', 'Error fetching WaPulse documentation', { error: (error as Error).message });
     }
     
-    if (error instanceof UserError) {
+    if (error instanceof McpError) {
       throw error;
     }
     
-    throw new UserError(`Failed to fetch WaPulse documentation: ${(error as Error).message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to fetch WaPulse documentation: ${(error as Error).message}`);
   }
 } 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest } from '../../utils/helpers.js';
 
 export const isExistsTool: Tool = {
@@ -76,6 +76,6 @@ export async function handleIsExists(args: any, context?: any) {
     if (log) {
       log.error("Failed to check ID existence", { error: error.message, value, type });
     }
-    throw new UserError(`Failed to check if ${type} ID ${value} exists: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to check if ${type} ID ${value} exists: ${error.message}`);
   }
 } 

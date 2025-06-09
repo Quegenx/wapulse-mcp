@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
-import { UserError } from 'fastmcp';
+import { McpError, ErrorCode } from '@modelcontextprotocol/sdk/types.js';
 import { makeApiRequest, formatPhoneNumber } from '../../utils/helpers.js';
 
 interface GroupRequest {
@@ -103,6 +103,6 @@ export async function handleGetGroupRequests(args: any, context?: any) {
     if (log) {
       log.error("Failed to get group requests", { error: error.message, groupId: id });
     }
-    throw new UserError(`Failed to get requests for group ${id}: ${error.message}`);
+    throw new McpError(ErrorCode.InternalError, `Failed to get requests for group ${id}: ${error.message}`);
   }
 } 

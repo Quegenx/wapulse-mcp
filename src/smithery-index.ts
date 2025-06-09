@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js"
 import { z } from "zod"
 
@@ -41,6 +40,11 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 	try {
 		console.log("🚀 Starting WaPulse MCP Server with all 25 tools...")
 
+		// Ensure config values are available
+		if (!config.wapulseToken || !config.wapulseInstanceID) {
+			throw new Error("Missing required configuration: wapulseToken and wapulseInstanceID are required");
+		}
+
 		const server = new McpServer({
 			name: "WaPulse WhatsApp MCP Server",
 			version: "2.0.0",
@@ -74,21 +78,21 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 		}
 
 		// Register messaging tools
-		server.tool(sendMessageTool.name, sendMessageTool.description, {
+		server.tool(sendMessageTool.name!!, sendMessageTool.description!!, {
 			to: z.string().regex(/^\d{1,4}\d{6,15}$/),
 			message: z.string().min(1).max(4096),
 			type: z.enum(['user', 'group']).default('user'),
 			customToken: z.string().optional(),
 			customInstanceID: z.string().optional()
-		}, sendMessageTool.annotations, async (args) => {
+		}, sendMessageTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken || config.wapulseToken;
-			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const token = customToken ?? config.wapulseToken!;
+			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
 			const result = await handleSendMessage({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
 
-		server.tool(sendFilesTool.name, sendFilesTool.description, {
+		server.tool(sendFilesTool.name!, sendFilesTool.description!, {
 			to: z.string().regex(/^\d{1,4}\d{6,15}$/),
 			files: z.array(z.object({
 				file: z.string(),
@@ -97,15 +101,15 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 			})).min(1).max(10),
 			customToken: z.string().optional(),
 			customInstanceID: z.string().optional()
-		}, sendFilesTool.annotations, async (args) => {
+		}, sendFilesTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken || config.wapulseToken;
-			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const token = customToken ?? config.wapulseToken!;
+			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
 			const result = await handleSendFiles({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
 
-		server.tool(sendAudioTool.name, sendAudioTool.description, {
+		server.tool(sendAudioTool.name!, sendAudioTool.description!, {
 			to: z.string().regex(/^\d{1,4}\d{6,15}$/),
 			audio: z.object({
 				file: z.string(),
@@ -115,63 +119,63 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 			}),
 			customToken: z.string().optional(),
 			customInstanceID: z.string().optional()
-		}, sendAudioTool.annotations, async (args) => {
+		}, sendAudioTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken || config.wapulseToken;
-			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const token = customToken ?? config.wapulseToken!;
+			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
 			const result = await handleSendAudio({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
 
-		server.tool(loadChatAllMessagesTool.name, loadChatAllMessagesTool.description, {
+		server.tool(loadChatAllMessagesTool.name!, loadChatAllMessagesTool.description!, {
 			id: z.string(),
 			type: z.enum(['user', 'group']),
 			until: z.string().optional(),
 			customToken: z.string().optional(),
 			customInstanceID: z.string().optional()
-		}, loadChatAllMessagesTool.annotations, async (args) => {
+		}, loadChatAllMessagesTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken || config.wapulseToken;
-			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const token = customToken ?? config.wapulseToken!;
+			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
 			const result = await handleLoadChatAllMessages({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
 
-		server.tool(isExistsTool.name, isExistsTool.description, {
+		server.tool(isExistsTool.name!, isExistsTool.description!, {
 			value: z.string(),
 			type: z.enum(['user', 'group']),
 			customToken: z.string().optional(),
 			customInstanceID: z.string().optional()
-		}, isExistsTool.annotations, async (args) => {
+		}, isExistsTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken || config.wapulseToken;
-			const instanceID = customInstanceID || config.wapulseInstanceID;
+			const token = customToken ?? config.wapulseToken!;
+			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
 			const result = await handleIsExists({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
 
-		server.tool(validatePhoneNumberTool.name, validatePhoneNumberTool.description, {
+		server.tool(validatePhoneNumberTool.name!, validatePhoneNumberTool.description!, {
 			phoneNumber: z.string()
-		}, validatePhoneNumberTool.annotations, async (args) => {
+		}, validatePhoneNumberTool.annotations ?? {}, async (args) => {
 			const result = await handleValidatePhoneNumber(args);
 			return convertResponse(result);
 		});
 
 		// Register general tools
-		server.tool(getAllChatsTool.name, getAllChatsTool.description, {
+		server.tool(getAllChatsTool.name!, getAllChatsTool.description!, {
 			customToken: z.string().optional(),
 			customInstanceID: z.string().optional()
-		}, getAllChatsTool.annotations, async (args) => {
-			const token = args.customToken || config.wapulseToken;
-			const instanceID = args.customInstanceID || config.wapulseInstanceID;
+		}, getAllChatsTool.annotations ?? {}, async (args) => {
+			const token = args.customToken ?? config.wapulseToken!;
+			const instanceID = args.customInstanceID ?? config.wapulseInstanceID!;
 			const result = await handleGetAllChats({ customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
 
-		server.tool(wapulseDocTool.name, wapulseDocTool.description, {
+		server.tool(wapulseDocTool.name!, wapulseDocTool.description!, {
 			section: z.enum(['overview', 'authentication', 'messaging', 'groups', 'instances', 'webhooks', 'errors', 'rate-limits', 'examples']).optional(),
 			search: z.string().min(2).max(100).optional()
-		}, wapulseDocTool.annotations, async (args) => {
+		}, wapulseDocTool.annotations ?? {}, async (args) => {
 			const result = await handleGetWapulseDoc(args, adaptContext());
 			return convertResponse(result);
 		});
@@ -201,13 +205,13 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 			};
 
 			// Add specific fields for different tool types
-			if (tool.name.includes('participants') || tool.name.includes('request')) {
-				const fieldName = tool.name.includes('request') ? 'numbers' : 'participants';
-				const maxItems = tool.name.includes('promote') || tool.name.includes('demote') || tool.name.includes('request') ? 20 : 50;
+			if (tool.name!.includes('participants') || tool.name!.includes('request')) {
+				const fieldName = tool.name!.includes('request') ? 'numbers' : 'participants';
+				const maxItems = tool.name!.includes('promote') || tool.name!.includes('demote') || tool.name!.includes('request') ? 20 : 50;
 				schema[fieldName] = z.array(z.string().regex(/^\d{1,4}\d{6,15}$/)).min(1).max(maxItems);
 			}
 
-			if (tool.name === 'create_whatsapp_group') {
+			if (tool.name! === 'create_whatsapp_group') {
 				schema = {
 					name: z.string().min(1).max(100),
 					participants: z.array(z.string().regex(/^\d{1,4}\d{6,15}$/)).min(1).max(256),
@@ -216,10 +220,10 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 				};
 			}
 
-			server.tool(tool.name, tool.description, schema, tool.annotations, async (args) => {
+			server.tool(tool.name!, tool.description!, schema, tool.annotations ?? {}, async (args: any) => {
 				const { customToken, customInstanceID, ...restArgs } = args;
-				const token = customToken || config.wapulseToken;
-				const instanceID = customInstanceID || config.wapulseInstanceID;
+				const token = customToken ?? config.wapulseToken!;
+				const instanceID = customInstanceID ?? config.wapulseInstanceID!;
 				const result = await handler({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 				return convertResponse(result);
 			});
