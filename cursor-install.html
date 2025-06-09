@@ -1,103 +1,211 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Install WaPulse MCP Server in Cursor</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WaPulse MCP - Cursor Installation</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 50px auto; padding: 20px; }
-        .config { background: #f5f5f5; padding: 15px; border-radius: 5px; margin: 20px 0; }
-        .button { background: #007acc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; display: inline-block; margin: 10px 0; }
-        .button:hover { background: #005a9e; }
-        code { background: #f0f0f0; padding: 2px 4px; border-radius: 3px; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        h1 {
+            color: #333;
+            margin: 0;
+        }
+        .subtitle {
+            color: #666;
+            margin-top: 5px;
+        }
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+        }
+        .warning strong {
+            color: #d63031;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+        .btn {
+            background: #0066cc;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            width: 100%;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            background: #0052a3;
+        }
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e8;
+            border: 1px solid #4caf50;
+            border-radius: 6px;
+            display: none;
+        }
+        .result a {
+            color: #0066cc;
+            text-decoration: none;
+            font-weight: 600;
+            word-break: break-all;
+        }
+        .result a:hover {
+            text-decoration: underline;
+        }
+        .instructions {
+            background: #f8f9fa;
+            border-left: 4px solid #0066cc;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .instructions h3 {
+            margin-top: 0;
+            color: #0066cc;
+        }
+        .step {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+        }
+        .step::before {
+            content: "→";
+            position: absolute;
+            left: 0;
+            color: #0066cc;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
-    <h1>Install WaPulse MCP Server in Cursor</h1>
-    
-    <h2>Option 1: NPX Installation (Recommended)</h2>
-    <p>Use this configuration for direct NPX installation:</p>
-    
-    <div class="config">
-        <pre>{
-  "wapulse-whatsapp": {
-    "command": "npx",
-    "args": [
-      "-y",
-      "wapulse-whatsapp-mcp-server@latest"
-    ],
-    "env": {
-      "WAPULSE_TOKEN": "your-wapulse-token-here",
-      "WAPULSE_INSTANCE_ID": "your-instance-id-here"
-    }
-  }
-}</pre>
+    <div class="container">
+        <div class="header">
+            <div class="logo">📱💬</div>
+            <h1>WaPulse MCP Server</h1>
+            <p class="subtitle">WhatsApp Web API Integration for Cursor</p>
+        </div>
+
+        <div class="warning">
+            <strong>⚠️ Important:</strong> You need your own WaPulse API credentials. Do NOT share your token or instance ID with others!
+        </div>
+
+        <div class="instructions">
+            <h3>📋 Before You Start</h3>
+            <div class="step">Get your WaPulse API token from <a href="https://wapulse.com" target="_blank">wapulse.com</a></div>
+            <div class="step">Create a WhatsApp instance and get your Instance ID</div>
+            <div class="step">Fill in your credentials below to generate your personal Cursor installation link</div>
+        </div>
+
+        <form id="configForm">
+            <div class="form-group">
+                <label for="token">WaPulse API Token:</label>
+                <input type="text" id="token" placeholder="e.g., 12345678-1234-1234-1234-123456789abc" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="instanceId">WaPulse Instance ID:</label>
+                <input type="text" id="instanceId" placeholder="e.g., abcdef12-3456-7890-abcd-ef1234567890" required>
+            </div>
+            
+            <button type="submit" class="btn">🚀 Generate Cursor Installation Link</button>
+        </form>
+
+        <div id="result" class="result">
+            <h3>✅ Your Personal Installation Link:</h3>
+            <p>Click the link below to install WaPulse MCP in Cursor:</p>
+            <a id="cursorLink" href="#" target="_blank"></a>
+            <p style="margin-top: 15px; font-size: 14px; color: #666;">
+                <strong>Note:</strong> This link contains your personal credentials. Do not share it with others!
+            </p>
+        </div>
     </div>
-    
-    <p><strong>Before clicking the install link:</strong></p>
-    <ol>
-        <li>Replace <code>your-wapulse-token-here</code> with your actual WaPulse API token</li>
-        <li>Replace <code>your-instance-id-here</code> with your actual WaPulse instance ID</li>
-    </ol>
-    
-    <a href="cursor://anysphere.cursor-deeplink/mcp/install?name=wapulse-whatsapp&config=ewogICJ3YXB1bHNlLXdoYXRzYXBwIjogewogICAgImNvbW1hbmQiOiAibnB4IiwKICAgICJhcmdzIjogWwogICAgICAiLXkiLAogICAgICAid2FwdWxzZS13aGF0c2FwcC1tY3Atc2VydmVyQGxhdGVzdCIKICAgIF0sCiAgICAiZW52IjogewogICAgICAiV0FQVUXTRV9UT0tFTiI6ICJ5b3VyLXdhcHVsc2UtdG9rZW4taGVyZSIsCiAgICAgICJXQVBVTFNFX0lOU1RBTkNFX0lEIjogInlvdXItaW5zdGFuY2UtaWQtaGVyZSIKICAgIH0KICB9Cn0=" class="button">
-        📱 Add WaPulse MCP Server to Cursor
-    </a>
-    
-    <h2>Option 2: Smithery Cloud</h2>
-    <p>For Smithery cloud deployment (requires Smithery account):</p>
-    
-    <div class="config">
-        <pre>{
-  "wapulse-whatsapp-smithery": {
-    "command": "npx",
-    "args": [
-      "-y",
-      "@smithery/cli@latest",
-      "run",
-      "@Quegenx/wapulse-whatsapp-mcp",
-      "--key",
-      "your-smithery-key",
-      "--profile",
-      "your-profile"
-    ]
-  }
-}</pre>
-    </div>
-    
-    <h2>Manual Installation</h2>
-    <p>Alternatively, you can manually add this to your <code>~/.cursor/mcp.json</code> file:</p>
-    
-    <div class="config">
-        <pre>{
-  "mcpServers": {
-    "wapulse-whatsapp": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "wapulse-whatsapp-mcp-server@latest"
-      ],
-      "env": {
-        "WAPULSE_TOKEN": "your-wapulse-token-here",
-        "WAPULSE_INSTANCE_ID": "your-instance-id-here"
-      }
-    }
-  }
-}</pre>
-    </div>
-    
-    <h2>Getting Your Credentials</h2>
-    <ol>
-        <li>Visit <a href="https://wapulse.com" target="_blank">WaPulse.com</a></li>
-        <li>Create an account and get your API token</li>
-        <li>Create a WhatsApp instance and note the instance ID</li>
-        <li>Replace the placeholder values in the configuration above</li>
-    </ol>
-    
-    <h2>Available Tools (25 total)</h2>
-    <ul>
-        <li><strong>Messaging:</strong> Send messages, files, audio, validate phone numbers</li>
-        <li><strong>Groups:</strong> Create, manage participants, admin controls</li>
-        <li><strong>Instances:</strong> Create, start, stop, delete WhatsApp instances</li>
-        <li><strong>General:</strong> Get chats, documentation, phone validation</li>
-    </ul>
+
+    <script>
+        document.getElementById('configForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const token = document.getElementById('token').value.trim();
+            const instanceId = document.getElementById('instanceId').value.trim();
+            
+            if (!token || !instanceId) {
+                alert('Please fill in both fields');
+                return;
+            }
+            
+            // Create the configuration object
+            const config = {
+                command: "npx",
+                args: ["-y", "wapulse-whatsapp-mcp-server@1.0.3"],
+                env: {
+                    WAPULSE_TOKEN: token,
+                    WAPULSE_INSTANCE_ID: instanceId
+                }
+            };
+            
+            // Encode to base64
+            const configBase64 = btoa(JSON.stringify(config));
+            
+            // Generate the Cursor deeplink
+            const cursorLink = `cursor://anysphere.cursor-deeplink/mcp/install?name=wapulse-whatsapp&config=${configBase64}`;
+            
+            // Display the result
+            document.getElementById('cursorLink').href = cursorLink;
+            document.getElementById('cursorLink').textContent = cursorLink;
+            document.getElementById('result').style.display = 'block';
+            
+            // Scroll to result
+            document.getElementById('result').scrollIntoView({ behavior: 'smooth' });
+        });
+    </script>
 </body>
 </html> 

@@ -42,7 +42,20 @@ A comprehensive Model Context Protocol (MCP) server that provides seamless integ
 
 ## Installation
 
-### Option 1: NPX (Recommended)
+### Option 1: One-Click Cursor Installation (Easiest)
+
+Click this link to automatically install in Cursor IDE:
+
+**[📱 Install WaPulse MCP in Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=wapulse-whatsapp&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIndhcHVsc2Utd2hhdHNhcHAtbWNwLXNlcnZlckAxLjAuMyJdLCJlbnYiOnsiV0FQVUxTRV9UT0tFTiI6ImVudGVyLXlvdXItd2FwdWxzZS10b2tlbi1oZXJlIiwiV0FQVUxTRV9JTlNUQU5DRV9JRCI6ImVudGVyLXlvdXItaW5zdGFuY2UtaWQtaGVyZSJ9fQ==)**
+
+After clicking:
+1. Cursor will install the server automatically
+2. Edit your `~/.cursor/mcp.json` file
+3. Replace `"enter-your-wapulse-token-here"` with your actual WaPulse token
+4. Replace `"enter-your-instance-id-here"` with your actual instance ID
+5. Restart Cursor
+
+### Option 2: NPX (Manual)
 
 Install directly via NPX with your WaPulse credentials:
 
@@ -75,7 +88,7 @@ Add to your `mcp.json`:
 }
 ```
 
-### Option 2: Smithery Cloud
+### Option 3: Smithery Cloud
 
 Install via Smithery cloud (requires Smithery account):
 
@@ -83,7 +96,7 @@ Install via Smithery cloud (requires Smithery account):
 npx @smithery/cli@latest install @Quegenx/wapulse-whatsapp-mcp --client cursor
 ```
 
-### Option 3: Local Development
+### Option 4: Local Development
 
 1. Clone the repository:
 ```bash

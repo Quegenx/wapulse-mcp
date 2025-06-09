@@ -32,8 +32,8 @@ import { handleStopInstance } from "./tools/instance/stopInstance.js"
 import { handleDeleteInstance } from "./tools/instance/deleteInstance.js"
 
 export const configSchema = z.object({
-	wapulseToken: z.string().describe("WaPulse API token"),
-	wapulseInstanceID: z.string().describe("WaPulse instance ID"),
+	wapulseToken: z.string().optional().describe("WaPulse API token"),
+	wapulseInstanceID: z.string().optional().describe("WaPulse instance ID"),
 	wapulseBaseUrl: z.string().default("https://wapulseserver.com:3003").describe("WaPulse API base URL"),
 })
 
@@ -41,10 +41,8 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 	try {
 		console.log("🚀 Starting WaPulse MCP Server with all 25 tools...")
 
-		// Ensure config values are available
-		if (!config.wapulseToken || !config.wapulseInstanceID) {
-			throw new Error("Missing required configuration: wapulseToken and wapulseInstanceID are required");
-		}
+		// Note: We don't validate credentials here to allow tool discovery
+		// Credentials will be validated when tools are actually called
 
 		// Set the base URL for API requests
 		process.env.WAPULSE_BASE_URL = config.wapulseBaseUrl;
@@ -70,6 +68,18 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 					text: JSON.stringify(result, null, 2)
 				}]
 			};
+		}
+
+		// Helper function to validate credentials when tools are called
+		function validateCredentials(customToken?: string, customInstanceID?: string) {
+			const token = customToken ?? config.wapulseToken;
+			const instanceID = customInstanceID ?? config.wapulseInstanceID;
+			
+			if (!token || !instanceID) {
+				throw new Error("Missing required credentials: wapulseToken and wapulseInstanceID are required. Please configure your credentials in the MCP client.");
+			}
+			
+			return { token, instanceID };
 		}
 
 		// Helper function to adapt context
@@ -113,8 +123,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 			customInstanceID: z.string().optional()
 		}, sendMessageTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken ?? config.wapulseToken!;
-			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
+			const { token, instanceID } = validateCredentials(customToken, customInstanceID);
 			const result = await handleSendMessage({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
@@ -130,8 +139,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 			customInstanceID: z.string().optional()
 		}, sendFilesTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken ?? config.wapulseToken!;
-			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
+			const { token, instanceID } = validateCredentials(customToken, customInstanceID);
 			const result = await handleSendFiles({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
@@ -148,8 +156,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 			customInstanceID: z.string().optional()
 		}, sendAudioTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken ?? config.wapulseToken!;
-			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
+			const { token, instanceID } = validateCredentials(customToken, customInstanceID);
 			const result = await handleSendAudio({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
@@ -162,8 +169,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 			customInstanceID: z.string().optional()
 		}, loadChatAllMessagesTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken ?? config.wapulseToken!;
-			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
+			const { token, instanceID } = validateCredentials(customToken, customInstanceID);
 			const result = await handleLoadChatAllMessages({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
@@ -175,8 +181,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 			customInstanceID: z.string().optional()
 		}, isExistsTool.annotations ?? {}, async (args) => {
 			const { customToken, customInstanceID, ...restArgs } = args;
-			const token = customToken ?? config.wapulseToken!;
-			const instanceID = customInstanceID ?? config.wapulseInstanceID!;
+			const { token, instanceID } = validateCredentials(customToken, customInstanceID);
 			const result = await handleIsExists({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
@@ -193,8 +198,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 			customToken: z.string().optional(),
 			customInstanceID: z.string().optional()
 		}, getAllChatsTool.annotations ?? {}, async (args) => {
-			const token = args.customToken ?? config.wapulseToken!;
-			const instanceID = args.customInstanceID ?? config.wapulseInstanceID!;
+			const { token, instanceID } = validateCredentials(args.customToken, args.customInstanceID);
 			const result = await handleGetAllChats({ customToken: token, customInstanceID: instanceID }, adaptContext());
 			return convertResponse(result);
 		});
@@ -249,8 +253,7 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 
 			server.tool(tool.name!, tool.description!, schema, tool.annotations ?? {}, async (args: any) => {
 				const { customToken, customInstanceID, ...restArgs } = args;
-				const token = customToken ?? config.wapulseToken!;
-				const instanceID = customInstanceID ?? config.wapulseInstanceID!;
+				const { token, instanceID } = validateCredentials(customToken, customInstanceID);
 				const result = await handler({ ...restArgs, customToken: token, customInstanceID: instanceID }, adaptContext());
 				return convertResponse(result);
 			});
