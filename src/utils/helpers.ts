@@ -4,10 +4,10 @@ import type { InstanceConfig } from "../types/api.js";
 // Phone number validation regex (country code + number, no + sign, no spaces)
 export const phoneRegex = /^\d{1,4}\d{6,15}$/;
 
-// Default configuration - can be overridden by environment variables
+// Default configuration - users must provide their own credentials
 export const DEFAULT_CONFIG: InstanceConfig = {
-  token: "***REMOVED***",
-  instanceID: "d20dba45-852a-4bfc-ab43-8bfd2d28c2a4",
+  token: "",
+  instanceID: "",
   baseUrl: "https://wapulseserver.com:3003"
 };
 
@@ -84,11 +84,11 @@ export async function makeApiRequest(
   const instanceID = customInstanceID || config.instanceID;
   
   if (!token) {
-    throw new McpError(ErrorCode.InvalidParams, "WaPulse token not configured. Please set WAPULSE_TOKEN environment variable or provide customToken parameter.");
+    throw new McpError(ErrorCode.InvalidParams, "WaPulse token not configured. Please provide your WaPulse API token when installing the MCP server.");
   }
 
   if (!instanceID) {
-    throw new McpError(ErrorCode.InvalidParams, "WaPulse instance ID not configured. Please set WAPULSE_INSTANCE_ID environment variable or provide customInstanceID parameter.");
+    throw new McpError(ErrorCode.InvalidParams, "WaPulse instance ID not configured. Please provide your WaPulse instance ID when installing the MCP server.");
   }
   
   const url = `${config.baseUrl}${endpoint}`;

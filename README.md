@@ -1,778 +1,226 @@
-# WaPulse MCP Server
+# WaPulse WhatsApp MCP Server
 
-Provide an MCP server interface for the WaPulse WhatsApp Web API, enabling integration and interaction with WhatsApp Web through the Model Context Protocol. Facilitate seamless communication and automation for clients using MCP-compatible tools and resources.
-
-> [!NOTE]
->
-> For a Python implementation, see [FastMCP](https://github.com/jlowin/fastmcp).
+A comprehensive Model Context Protocol (MCP) server that provides seamless integration with the WaPulse WhatsApp Web API. This server enables you to send messages, manage groups, handle files, and perform various WhatsApp operations through the MCP protocol.
 
 ## Features
 
-- Simple Tool, Resource, Prompt definition
-- [Authentication](#authentication)
-- [Sessions](#sessions)
-- [Image content](#returning-an-image)
-- [Logging](#logging)
-- [Error handling](#errors)
-- [SSE](#sse)
-- CORS (enabled by default)
-- [Progress notifications](#progress)
-- [Typed server events](#typed-server-events)
-- [Prompt argument auto-completion](#prompt-argument-auto-completion)
-- [Sampling](#requestsampling)
-- Automated SSE pings
-- Roots
-- CLI for [testing](#test-with-mcp-cli) and [debugging](#inspect-with-mcp-inspector)
+### 🚀 **25 WhatsApp Tools Available**
+
+#### **Messaging Tools (7)**
+- `send_whatsapp_message` - Send text messages to individuals or groups
+- `send_whatsapp_files` - Send images, documents, and other files
+- `send_whatsapp_audio` - Send audio messages and voice notes
+- `load_chat_messages` - Retrieve chat history and messages
+- `check_id_exists` - Verify if a WhatsApp ID exists
+- `validate_phone_number` - Validate phone number format
+- `get_all_chats` - Get all chat conversations
+
+#### **Group Management Tools (12)**
+- `create_whatsapp_group` - Create new WhatsApp groups
+- `add_group_participants` - Add members to groups
+- `remove_group_participants` - Remove members from groups
+- `promote_group_participants` - Promote members to admin
+- `demote_group_participants` - Demote admins to members
+- `leave_whatsapp_group` - Leave a group
+- `get_group_invite_link` - Get group invite links
+- `change_group_invite_code` - Generate new invite links
+- `get_group_requests` - View pending join requests
+- `approve_group_request` - Approve join requests
+- `reject_group_request` - Reject join requests
+- `get_all_groups` - List all groups
+
+#### **Instance Management Tools (5)**
+- `create_instance` - Create new WhatsApp instances
+- `get_qr_code` - Get QR code for WhatsApp Web connection
+- `start_instance` - Start a WhatsApp instance
+- `stop_instance` - Stop a WhatsApp instance
+- `delete_instance` - Delete a WhatsApp instance
+
+#### **General Tools (2)**
+- `get_wapulse_documentation` - Access API documentation
+- `get_all_chats` - Retrieve all chat conversations
 
 ## Installation
 
-```bash
-npm install fastmcp
-```
+### Option 1: Smithery Cloud (Recommended)
 
-## Quickstart
-
-> [!NOTE]
->
-> There are many real-world examples of using FastMCP in the wild. See the [Showcase](#showcase) for examples.
-
-```ts
-import { FastMCP } from "fastmcp";
-import { z } from "zod"; // Or any validation library that supports Standard Schema
-
-const server = new FastMCP({
-  name: "My Server",
-  version: "1.0.0",
-});
-
-server.addTool({
-  name: "add",
-  description: "Add two numbers",
-  parameters: z.object({
-    a: z.number(),
-    b: z.number(),
-  }),
-  execute: async (args) => {
-    return String(args.a + args.b);
-  },
-});
-
-server.start({
-  transportType: "stdio",
-});
-```
-
-_That's it!_ You have a working MCP server.
-
-You can test the server in terminal with:
+Install directly from Smithery cloud with your WaPulse credentials:
 
 ```bash
-git clone https://github.com/punkpeye/fastmcp.git
-cd fastmcp
-
-pnpm install
-pnpm build
-
-# Test the addition server example using CLI:
-npx fastmcp dev src/examples/addition.ts
-# Test the addition server example using MCP Inspector:
-npx fastmcp inspect src/examples/addition.ts
+npx @smithery/cli@latest install @Quegenx/wapulse-whatsapp-mcp --client cursor
 ```
 
-### SSE
+When prompted, provide:
+- **WaPulse API Token**: Your token from https://wapulse.com
+- **WaPulse Instance ID**: Your WhatsApp instance ID
+- **WaPulse Base URL**: (optional) Defaults to `https://wapulseserver.com:3003`
 
-[Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) (SSE) provide a mechanism for servers to send real-time updates to clients over an HTTPS connection. In the context of MCP, SSE is primarily used to enable remote MCP communication, allowing an MCP hosted on a remote machine to be accessed and relay updates over the network.
+### Option 2: Local Development
 
-You can also run the server with SSE support:
-
-```ts
-server.start({
-  transportType: "sse",
-  sse: {
-    endpoint: "/sse",
-    port: 8080,
-  },
-});
-```
-
-This will start the server and listen for SSE connections on `http://localhost:8080/sse`.
-
-You can then use `SSEClientTransport` to connect to the server:
-
-```ts
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
-
-const client = new Client(
-  {
-    name: "example-client",
-    version: "1.0.0",
-  },
-  {
-    capabilities: {},
-  },
-);
-
-const transport = new SSEClientTransport(new URL(`http://localhost:8080/sse`));
-
-await client.connect(transport);
-```
-
-## Core Concepts
-
-### Tools
-
-[Tools](https://modelcontextprotocol.io/docs/concepts/tools) in MCP allow servers to expose executable functions that can be invoked by clients and used by LLMs to perform actions.
-
-FastMCP uses the [Standard Schema](https://standardschema.dev) specification for defining tool parameters. This allows you to use your preferred schema validation library (like Zod, ArkType, or Valibot) as long as it implements the spec.
-
-**Zod Example:**
-
-```typescript
-import { z } from "zod";
-
-server.addTool({
-  name: "fetch-zod",
-  description: "Fetch the content of a url (using Zod)",
-  parameters: z.object({
-    url: z.string(),
-  }),
-  execute: async (args) => {
-    return await fetchWebpageContent(args.url);
-  },
-});
-```
-
-**ArkType Example:**
-
-```typescript
-import { type } from "arktype";
-
-server.addTool({
-  name: "fetch-arktype",
-  description: "Fetch the content of a url (using ArkType)",
-  parameters: type({
-    url: "string",
-  }),
-  execute: async (args) => {
-    return await fetchWebpageContent(args.url);
-  },
-});
-```
-
-**Valibot Example:**
-
-Valibot requires the peer dependency @valibot/to-json-schema.
-
-```typescript
-import * as v from "valibot";
-
-server.addTool({
-  name: "fetch-valibot",
-  description: "Fetch the content of a url (using Valibot)",
-  parameters: v.object({
-    url: v.string(),
-  }),
-  execute: async (args) => {
-    return await fetchWebpageContent(args.url);
-  },
-});
-```
-
-#### Returning a string
-
-`execute` can return a string:
-
-```js
-server.addTool({
-  name: "download",
-  description: "Download a file",
-  parameters: z.object({
-    url: z.string(),
-  }),
-  execute: async (args) => {
-    return "Hello, world!";
-  },
-});
-```
-
-The latter is equivalent to:
-
-```js
-server.addTool({
-  name: "download",
-  description: "Download a file",
-  parameters: z.object({
-    url: z.string(),
-  }),
-  execute: async (args) => {
-    return {
-      content: [
-        {
-          type: "text",
-          text: "Hello, world!",
-        },
-      ],
-    };
-  },
-});
-```
-
-#### Returning a list
-
-If you want to return a list of messages, you can return an object with a `content` property:
-
-```js
-server.addTool({
-  name: "download",
-  description: "Download a file",
-  parameters: z.object({
-    url: z.string(),
-  }),
-  execute: async (args) => {
-    return {
-      content: [
-        { type: "text", text: "First message" },
-        { type: "text", text: "Second message" },
-      ],
-    };
-  },
-});
-```
-
-#### Returning an image
-
-Use the `imageContent` to create a content object for an image:
-
-```js
-import { imageContent } from "fastmcp";
-
-server.addTool({
-  name: "download",
-  description: "Download a file",
-  parameters: z.object({
-    url: z.string(),
-  }),
-  execute: async (args) => {
-    return imageContent({
-      url: "https://example.com/image.png",
-    });
-
-    // or...
-    // return imageContent({
-    //   path: "/path/to/image.png",
-    // });
-
-    // or...
-    // return imageContent({
-    //   buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=", "base64"),
-    // });
-
-    // or...
-    // return {
-    //   content: [
-    //     await imageContent(...)
-    //   ],
-    // };
-  },
-});
-```
-
-The `imageContent` function takes the following options:
-
-- `url`: The URL of the image.
-- `path`: The path to the image file.
-- `buffer`: The image data as a buffer.
-
-Only one of `url`, `path`, or `buffer` must be specified.
-
-The above example is equivalent to:
-
-```js
-server.addTool({
-  name: "download",
-  description: "Download a file",
-  parameters: z.object({
-    url: z.string(),
-  }),
-  execute: async (args) => {
-    return {
-      content: [
-        {
-          type: "image",
-          data: "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=",
-          mimeType: "image/png",
-        },
-      ],
-    };
-  },
-});
-```
-
-#### Logging
-
-Tools can log messages to the client using the `log` object in the context object:
-
-```js
-server.addTool({
-  name: "download",
-  description: "Download a file",
-  parameters: z.object({
-    url: z.string(),
-  }),
-  execute: async (args, { log }) => {
-    log.info("Downloading file...", {
-      url,
-    });
-
-    // ...
-
-    log.info("Downloaded file");
-
-    return "done";
-  },
-});
-```
-
-The `log` object has the following methods:
-
-- `debug(message: string, data?: SerializableValue)`
-- `error(message: string, data?: SerializableValue)`
-- `info(message: string, data?: SerializableValue)`
-- `warn(message: string, data?: SerializableValue)`
-
-#### Errors
-
-The errors that are meant to be shown to the user should be thrown as `UserError` instances:
-
-```js
-import { UserError } from "fastmcp";
-
-server.addTool({
-  name: "download",
-  description: "Download a file",
-  parameters: z.object({
-    url: z.string(),
-  }),
-  execute: async (args) => {
-    if (args.url.startsWith("https://example.com")) {
-      throw new UserError("This URL is not allowed");
-    }
-
-    return "done";
-  },
-});
-```
-
-#### Progress
-
-Tools can report progress by calling `reportProgress` in the context object:
-
-```js
-server.addTool({
-  name: "download",
-  description: "Download a file",
-  parameters: z.object({
-    url: z.string(),
-  }),
-  execute: async (args, { reportProgress }) => {
-    reportProgress({
-      progress: 0,
-      total: 100,
-    });
-
-    // ...
-
-    reportProgress({
-      progress: 100,
-      total: 100,
-    });
-
-    return "done";
-  },
-});
-```
-
-### Resources
-
-[Resources](https://modelcontextprotocol.io/docs/concepts/resources) represent any kind of data that an MCP server wants to make available to clients. This can include:
-
-- File contents
-- Screenshots and images
-- Log files
-- And more
-
-Each resource is identified by a unique URI and can contain either text or binary data.
-
-```ts
-server.addResource({
-  uri: "file:///logs/app.log",
-  name: "Application Logs",
-  mimeType: "text/plain",
-  async load() {
-    return {
-      text: await readLogFile(),
-    };
-  },
-});
-```
-
-> [!NOTE]
->
-> `load` can return multiple resources. This could be used, for example, to return a list of files inside a directory when the directory is read.
->
-> ```ts
-> async load() {
->   return [
->     {
->       text: "First file content",
->     },
->     {
->       text: "Second file content",
->     },
->   ];
-> }
-> ```
-
-You can also return binary contents in `load`:
-
-```ts
-async load() {
-  return {
-    blob: 'base64-encoded-data'
-  };
-}
-```
-
-### Resource templates
-
-You can also define resource templates:
-
-```ts
-server.addResourceTemplate({
-  uriTemplate: "file:///logs/{name}.log",
-  name: "Application Logs",
-  mimeType: "text/plain",
-  arguments: [
-    {
-      name: "name",
-      description: "Name of the log",
-      required: true,
-    },
-  ],
-  async load({ name }) {
-    return {
-      text: `Example log content for ${name}`,
-    };
-  },
-});
-```
-
-#### Resource template argument auto-completion
-
-Provide `complete` functions for resource template arguments to enable automatic completion:
-
-```ts
-server.addResourceTemplate({
-  uriTemplate: "file:///logs/{name}.log",
-  name: "Application Logs",
-  mimeType: "text/plain",
-  arguments: [
-    {
-      name: "name",
-      description: "Name of the log",
-      required: true,
-      complete: async (value) => {
-        if (value === "Example") {
-          return {
-            values: ["Example Log"],
-          };
-        }
-
-        return {
-          values: [],
-        };
-      },
-    },
-  ],
-  async load({ name }) {
-    return {
-      text: `Example log content for ${name}`,
-    };
-  },
-});
-```
-
-### Prompts
-
-[Prompts](https://modelcontextprotocol.io/docs/concepts/prompts) enable servers to define reusable prompt templates and workflows that clients can easily surface to users and LLMs. They provide a powerful way to standardize and share common LLM interactions.
-
-```ts
-server.addPrompt({
-  name: "git-commit",
-  description: "Generate a Git commit message",
-  arguments: [
-    {
-      name: "changes",
-      description: "Git diff or description of changes",
-      required: true,
-    },
-  ],
-  load: async (args) => {
-    return `Generate a concise but descriptive commit message for these changes:\n\n${args.changes}`;
-  },
-});
-```
-
-#### Prompt argument auto-completion
-
-Prompts can provide auto-completion for their arguments:
-
-```js
-server.addPrompt({
-  name: "countryPoem",
-  description: "Writes a poem about a country",
-  load: async ({ name }) => {
-    return `Hello, ${name}!`;
-  },
-  arguments: [
-    {
-      name: "name",
-      description: "Name of the country",
-      required: true,
-      complete: async (value) => {
-        if (value === "Germ") {
-          return {
-            values: ["Germany"],
-          };
-        }
-
-        return {
-          values: [],
-        };
-      },
-    },
-  ],
-});
-```
-
-#### Prompt argument auto-completion using `enum`
-
-If you provide an `enum` array for an argument, the server will automatically provide completions for the argument.
-
-```js
-server.addPrompt({
-  name: "countryPoem",
-  description: "Writes a poem about a country",
-  load: async ({ name }) => {
-    return `Hello, ${name}!`;
-  },
-  arguments: [
-    {
-      name: "name",
-      description: "Name of the country",
-      required: true,
-      enum: ["Germany", "France", "Italy"],
-    },
-  ],
-});
-```
-
-### Authentication
-
-FastMCP allows you to `authenticate` clients using a custom function:
-
-```ts
-import { AuthError } from "fastmcp";
-
-const server = new FastMCP({
-  name: "My Server",
-  version: "1.0.0",
-  authenticate: ({request}) => {
-    const apiKey = request.headers["x-api-key"];
-
-    if (apiKey !== '123') {
-      throw new Response(null, {
-        status: 401,
-        statusText: "Unauthorized",
-      });
-    }
-
-    // Whatever you return here will be accessible in the `context.session` object.
-    return {
-      id: 1,
-    }
-  },
-});
-```
-
-Now you can access the authenticated session data in your tools:
-
-```ts
-server.addTool({
-  name: "sayHello",
-  execute: async (args, { session }) => {
-    return `Hello, ${session.id}!`;
-  },
-});
-```
-
-### Sessions
-
-The `session` object is an instance of `FastMCPSession` and it describes active client sessions.
-
-```ts
-server.sessions;
-```
-
-We allocate a new server instance for each client connection to enable 1:1 communication between a client and the server.
-
-### Typed server events
-
-You can listen to events emitted by the server using the `on` method:
-
-```ts
-server.on("connect", (event) => {
-  console.log("Client connected:", event.session);
-});
-
-server.on("disconnect", (event) => {
-  console.log("Client disconnected:", event.session);
-});
-```
-
-## `FastMCPSession`
-
-`FastMCPSession` represents a client session and provides methods to interact with the client.
-
-Refer to [Sessions](#sessions) for examples of how to obtain a `FastMCPSession` instance.
-
-### `requestSampling`
-
-`requestSampling` creates a [sampling](https://modelcontextprotocol.io/docs/concepts/sampling) request and returns the response.
-
-```ts
-await session.requestSampling({
-  messages: [
-    {
-      role: "user",
-      content: {
-        type: "text",
-        text: "What files are in the current directory?",
-      },
-    },
-  ],
-  systemPrompt: "You are a helpful file system assistant.",
-  includeContext: "thisServer",
-  maxTokens: 100,
-});
-```
-
-### `clientCapabilities`
-
-The `clientCapabilities` property contains the client capabilities.
-
-```ts
-session.clientCapabilities;
-```
-
-### `loggingLevel`
-
-The `loggingLevel` property describes the logging level as set by the client.
-
-```ts
-session.loggingLevel;
-```
-
-### `roots`
-
-The `roots` property contains the roots as set by the client.
-
-```ts
-session.roots;
-```
-
-### `server`
-
-The `server` property contains an instance of MCP server that is associated with the session.
-
-```ts
-session.server;
-```
-
-### Typed session events
-
-You can listen to events emitted by the session using the `on` method:
-
-```ts
-session.on("rootsChanged", (event) => {
-  console.log("Roots changed:", event.roots);
-});
-
-session.on("error", (event) => {
-  console.error("Error:", event.error);
-});
-```
-
-## Running Your Server
-
-### Test with `mcp-cli`
-
-The fastest way to test and debug your server is with `fastmcp dev`:
-
+1. Clone the repository:
 ```bash
-npx fastmcp dev server.js
-npx fastmcp dev server.ts
+git clone https://github.com/Quegenx/wapulse-mcp.git
+cd wapulse-mcp
 ```
 
-This will run your server with [`mcp-cli`](https://github.com/wong2/mcp-cli) for testing and debugging your MCP server in the terminal.
-
-### Inspect with `MCP Inspector`
-
-Another way is to use the official [`MCP Inspector`](https://modelcontextprotocol.io/docs/tools/inspector) to inspect your server with a Web UI:
-
+2. Install dependencies:
 ```bash
-npx fastmcp inspect server.ts
+npm install
 ```
 
-## FAQ
+3. Build the project:
+```bash
+npm run build
+```
 
-### How to use with Claude Desktop?
+4. Configure your MCP client to use the built server at `dist/smithery-index.js` with your WaPulse credentials
 
-Follow the guide https://modelcontextprotocol.io/quickstart/user and add the following configuration:
+## Configuration
+
+### Required Configuration
+- `wapulseToken` - Your WaPulse API token
+- `wapulseInstanceID` - Your WhatsApp instance ID
+
+### Optional Configuration
+- `wapulseBaseUrl` - WaPulse API base URL (defaults to `https://wapulseserver.com:3003`)
+
+### Example MCP Client Configuration
+
+For Cursor IDE, add to your `mcp.json`:
 
 ```json
 {
   "mcpServers": {
-    "my-mcp-server": {
+    "wapulse-whatsapp": {
       "command": "npx",
       "args": [
-        "tsx",
-        "/PATH/TO/YOUR_PROJECT/src/index.ts"
-      ],
-      "env": {
-        "YOUR_ENV_VAR": "value"
-      }
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@Quegenx/wapulse-whatsapp-mcp",
+        "--key",
+        "your-smithery-key",
+        "--profile",
+        "your-profile"
+      ]
     }
   }
 }
 ```
 
-## Showcase
+## Usage Examples
 
-> [!NOTE]
->
-> If you've developed a server using FastMCP, please [submit a PR](https://github.com/punkpeye/fastmcp) to showcase it here!
+### Send a WhatsApp Message
+```typescript
+// Send a text message
+await sendWhatsAppMessage({
+  to: "972512345678",
+  message: "Hello from MCP!",
+  type: "user"
+});
+```
 
-- [apinetwork/piapi-mcp-server](https://github.com/apinetwork/piapi-mcp-server) - generate media using Midjourney/Flux/Kling/LumaLabs/Udio/Chrip/Trellis
-- [domdomegg/computer-use-mcp](https://github.com/domdomegg/computer-use-mcp) - controls your computer
-- [LiterallyBlah/Dradis-MCP](https://github.com/LiterallyBlah/Dradis-MCP) – manages projects and vulnerabilities in Dradis
-- [Meeting-Baas/meeting-mcp](https://github.com/Meeting-Baas/meeting-mcp) - create meeting bots, search transcripts, and manage recording data
-- [drumnation/unsplash-smart-mcp-server](https://github.com/drumnation/unsplash-smart-mcp-server) – enables AI agents to seamlessly search, recommend, and deliver professional stock photos from Unsplash
-- [ssmanji89/halopsa-workflows-mcp](https://github.com/ssmanji89/halopsa-workflows-mcp) - HaloPSA Workflows integration with AI assistants
-- [aiamblichus/mcp-chat-adapter](https://github.com/aiamblichus/mcp-chat-adapter) – provides a clean interface for LLMs to use chat completion
+### Send Files
+```typescript
+// Send an image with caption
+await sendWhatsAppFiles({
+  to: "972512345678",
+  files: [{
+    file: "data:image/jpeg;base64,/9j/4AAQ...",
+    filename: "image.jpg",
+    caption: "Check out this image!"
+  }]
+});
+```
 
-## Acknowledgements
+### Create a WhatsApp Group
+```typescript
+// Create a new group
+await createWhatsAppGroup({
+  name: "My New Group",
+  participants: ["972512345678", "972587654321"]
+});
+```
 
-- FastMCP is inspired by the [Python implementation](https://github.com/jlowin/fastmcp) by [Jonathan Lowin](https://github.com/jlowin).
-- Parts of codebase were adopted from [LiteMCP](https://github.com/wong2/litemcp).
-- Parts of codebase were adopted from [Model Context protocolでSSEをやってみる](https://dev.classmethod.jp/articles/mcp-sse/).
+### Load Chat Messages
+```typescript
+// Get chat history
+await loadChatMessages({
+  id: "972512345678@c.us",
+  type: "user"
+});
+```
+
+## Phone Number Format
+
+All phone numbers should be in international format without the `+` sign:
+- ✅ Correct: `972512345678` (Israel)
+- ✅ Correct: `14155552671` (US)
+- ❌ Incorrect: `+972512345678`
+- ❌ Incorrect: `972-512-345-678`
+
+## Error Handling
+
+The server uses proper MCP error codes:
+- `InvalidParams` - For validation errors (invalid phone numbers, missing parameters)
+- `InternalError` - For API failures or network issues
+
+## Development
+
+### Building
+```bash
+npm run build
+```
+
+### Testing
+```bash
+npm test
+```
+
+### Linting
+```bash
+npm run lint
+```
+
+## API Documentation
+
+The server includes a built-in documentation tool that provides comprehensive information about the WaPulse API:
+
+```typescript
+await getWaPulseDocumentation({
+  section: "messaging", // overview, authentication, messaging, groups, instances, webhooks, errors, rate-limits, examples
+  search: "send message" // optional search term
+});
+```
+
+## Requirements
+
+- Node.js 18+ 
+- Valid WaPulse account and API credentials
+- Active WhatsApp instance
+
+## Getting WaPulse Credentials
+
+1. Visit [WaPulse.com](https://wapulse.com)
+2. Create an account and get your API token
+3. Create a WhatsApp instance and note the instance ID
+4. Use these credentials when installing the MCP server
+
+## Support
+
+For issues related to:
+- **MCP Server**: Open an issue on this repository
+- **WaPulse API**: Contact WaPulse support
+- **WhatsApp Integration**: Check WaPulse documentation
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+---
+
+**Built with ❤️ using the official [Model Context Protocol SDK](https://github.com/modelcontextprotocol/sdk)**

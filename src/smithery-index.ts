@@ -34,6 +34,7 @@ import { handleDeleteInstance } from "./tools/instance/deleteInstance.js"
 export const configSchema = z.object({
 	wapulseToken: z.string().describe("WaPulse API token"),
 	wapulseInstanceID: z.string().describe("WaPulse instance ID"),
+	wapulseBaseUrl: z.string().default("https://wapulseserver.com:3003").describe("WaPulse API base URL"),
 })
 
 export default function ({ config }: { config: z.infer<typeof configSchema> }) {
@@ -44,6 +45,9 @@ export default function ({ config }: { config: z.infer<typeof configSchema> }) {
 		if (!config.wapulseToken || !config.wapulseInstanceID) {
 			throw new Error("Missing required configuration: wapulseToken and wapulseInstanceID are required");
 		}
+
+		// Set the base URL for API requests
+		process.env.WAPULSE_BASE_URL = config.wapulseBaseUrl;
 
 		const server = new McpServer({
 			name: "WaPulse WhatsApp MCP Server",
