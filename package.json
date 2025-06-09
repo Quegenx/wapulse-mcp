@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "MCP server for WaPulse WhatsApp Web API",
   "main": "dist/index.js",
-  "module": "./src/index.ts",
+  "module": "./src/smithery-index.ts",
   "type": "module",
   "scripts": {
     "build": "tsup",
