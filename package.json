@@ -1,12 +1,12 @@
 {
-  "name": "@quegenx/wapulse-mcp",
+  "name": "wapulse-whatsapp-mcp-server",
   "version": "1.0.0",
   "description": "MCP server for WaPulse WhatsApp Web API - send messages, manage groups, handle files through WhatsApp Web",
   "main": "dist/stdio-index.js",
   "module": "./src/stdio-index.ts",
   "type": "module",
   "bin": {
-    "wapulse-mcp": "./dist/stdio-index.js"
+    "wapulse-mcp": "dist/stdio-index.js"
   },
   "files": [
     "dist/**/*",
@@ -26,7 +26,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Quegenx/wapulse-mcp.git"
+    "url": "git+https://github.com/Quegenx/wapulse-mcp.git"
   },
   "homepage": "https://github.com/Quegenx/wapulse-mcp#readme",
   "bugs": {

@@ -47,7 +47,7 @@ A comprehensive Model Context Protocol (MCP) server that provides seamless integ
 Install directly via NPX with your WaPulse credentials:
 
 ```bash
-npx @quegenx/wapulse-mcp
+npx wapulse-whatsapp-mcp-server
 ```
 
 **Configuration via Environment Variables:**
@@ -55,7 +55,7 @@ npx @quegenx/wapulse-mcp
 export WAPULSE_TOKEN="your-wapulse-token"
 export WAPULSE_INSTANCE_ID="your-instance-id"
 export WAPULSE_BASE_URL="https://wapulseserver.com:3003"  # optional
-npx @quegenx/wapulse-mcp
+npx wapulse-whatsapp-mcp-server
 ```
 
 **Configuration in MCP Client (Cursor):**
@@ -65,7 +65,7 @@ Add to your `mcp.json`:
   "mcpServers": {
     "wapulse": {
       "command": "npx",
-      "args": ["@quegenx/wapulse-mcp"],
+      "args": ["wapulse-whatsapp-mcp-server"],
       "env": {
         "WAPULSE_TOKEN": "your-wapulse-token",
         "WAPULSE_INSTANCE_ID": "your-instance-id"
