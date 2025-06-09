@@ -46,12 +46,20 @@ export function getEffectiveConfig(customToken?: string, customInstanceID?: stri
   token: string;
   instanceID: string;
 } {
-  const token = customToken || globalConfig.wapulseToken;
-  const instanceID = customInstanceID || globalConfig.wapulseInstanceID;
+  const token = customToken || globalConfig.wapulseToken || process.env.WAPULSE_TOKEN;
+  const instanceID = customInstanceID || globalConfig.wapulseInstanceID || process.env.WAPULSE_INSTANCE_ID;
   
   if (!token || !instanceID) {
     throw new Error('WaPulse configuration required. Please provide wapulseToken and wapulseInstanceID in server configuration or as custom parameters.');
   }
   
   return { token, instanceID };
+}
+
+// Check if configuration is available (for lazy loading)
+export function hasConfiguration(customToken?: string, customInstanceID?: string): boolean {
+  const token = customToken || globalConfig.wapulseToken || process.env.WAPULSE_TOKEN;
+  const instanceID = customInstanceID || globalConfig.wapulseInstanceID || process.env.WAPULSE_INSTANCE_ID;
+  
+  return !!(token && instanceID);
 } 

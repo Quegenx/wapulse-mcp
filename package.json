@@ -2,14 +2,14 @@
   "name": "wapulse-mcp",
   "version": "1.0.0",
   "description": "MCP server for WaPulse WhatsApp Web API",
-  "main": "dist/server.js",
-  "module": "./src/server.ts",
+  "main": "dist/index.js",
+  "module": "./src/index.ts",
   "type": "module",
   "scripts": {
     "build": "tsup",
-    "start": "node dist/server.js",
-    "dev": "tsx src/server.ts",
-    "dev:http": "NODE_ENV=production tsx src/server.ts",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts",
+    "dev:http": "NODE_ENV=production tsx src/index.ts",
     "format": "prettier --write ."
   },
   "dependencies": {
@@ -27,7 +27,7 @@
   },
   "tsup": {
     "entry": [
-      "src/server.ts"
+      "src/index.ts"
     ],
     "format": [
       "esm"
