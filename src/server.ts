@@ -38,7 +38,7 @@ import {
 // Initialize configuration from environment variables
 parseConfigFromEnv();
 
-// Create FastMCP server
+// Create FastMCP server with configuration handling
 const server = new FastMCP({
   name: "WaPulse WhatsApp MCP Server",
   version: "2.0.0",
@@ -54,13 +54,37 @@ Features:
 - Group invite link management and join request handling
 - Audio format support: MP3, WAV, OGG, M4A, AAC, OPUS, FLAC
 
+Configuration:
+- wapulseToken: Your WaPulse API authentication token
+- wapulseInstanceID: Your WaPulse WhatsApp instance ID
+
 Usage:
 - All tools include proper error handling with UserError
 - File uploads show progress reporting
 - Chat loading streams messages in real-time
 - Phone number validation with helpful error messages`,
 
-
+  // Handle configuration from query parameters (Smithery format)
+  authenticate: async (request) => {
+    try {
+      const url = new URL(request.url || 'http://localhost');
+      const wapulseToken = url.searchParams.get('wapulseToken');
+      const wapulseInstanceID = url.searchParams.get('wapulseInstanceID');
+      
+      if (wapulseToken && wapulseInstanceID) {
+        // Update global config from query parameters
+        globalConfig.wapulseToken = wapulseToken;
+        globalConfig.wapulseInstanceID = wapulseInstanceID;
+        console.log('🔑 Configuration loaded from query parameters');
+      }
+      
+      // Return undefined as expected by FastMCP
+      return undefined;
+    } catch (error) {
+      console.warn('⚠️ Failed to parse configuration from request:', error);
+      return undefined;
+    }
+  },
 
   health: {
     enabled: true,
@@ -392,6 +416,11 @@ instanceTools.forEach(({ name, handler, params, description, destructive = false
 // Server event handlers
 server.on("connect", (event) => {
   console.log(`🔗 Client connected to WaPulse MCP Server`);
+  
+  // Try to parse configuration from environment if not already set
+  if (!globalConfig.wapulseToken || !globalConfig.wapulseInstanceID) {
+    parseConfigFromEnv();
+  }
 });
 
 server.on("disconnect", (event) => {
