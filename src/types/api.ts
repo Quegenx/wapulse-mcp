@@ -1,325 +1,288 @@
-export interface SearchRequest {
-  dateFrom: string;
-  dateTo: string;
-  hotelName?: string;
-  city: string;
-  paxChildren: number[];
-  adults: number;
-  stars?: number;
-  limit?: number;
+// WaPulse WhatsApp API Types
+
+export interface SendMessageRequest {
+  token: string;
+  instanceID: string;
+  to: string;
+  message: string;
+  type?: "user" | "group";
 }
 
-export interface Price {
-  amount: number;
-  currency: string;
+export interface SendMessageResponse {
+  message: string;
 }
 
-export interface Provider {
-  id: number;
-  name: string;
+// Send Files API Types
+export interface FileObject {
+  file: string; // Base64 encoded file data with data URI prefix
+  filename: string;
+  caption?: string;
 }
 
-export interface SpecialOffer {
-  type: number;
-  title: string;
-  description: string;
+export interface SendFilesRequest {
+  token: string;
+  instanceID: string;
+  to: string;
+  files: FileObject[];
 }
 
-export interface RoomPax {
-  adults: number;
-  children: number[];
+export interface SendFilesResponse {
+  message: string;
 }
 
-export interface RoomQuantity {
-  min: number;
-  max: number;
+// Load Chat Messages API Types
+export interface LoadChatMessagesRequest {
+  token: string;
+  instanceID: string;
+  id: string; // Chat ID (e.g., "353871234567@c.us")
+  type: "user" | "group";
+  until?: string; // Timestamp
 }
 
-export interface RoomItem {
-  name: string;
-  category: string;
-  bedding: string;
-  board: string;
-  hotelId: string;
-  pax: RoomPax;
-  quantity: RoomQuantity;
-  detailsAvailable: boolean;
-}
-
-export interface CancellationFrame {
+export interface ChatMessage {
+  id: string;
+  body: string;
+  type: string;
+  timestamp: number;
   from: string;
   to: string;
-  penalty: Price;
+  fromMe: boolean;
+  hasMedia: boolean;
+  [key: string]: any; // Allow for additional properties
 }
 
-export interface Cancellation {
-  type: string;
-  frames: CancellationFrame[];
+export interface LoadChatMessagesResponse {
+  messages: ChatMessage[];
 }
 
-export interface SearchResultItem {
-  price: Price;
-  netPrice: Price;
-  barRate: Price | null;
-  confirmation: string;
-  paymentType: string;
-  packageRate: boolean;
-  commissionable: boolean;
-  providers: Provider[];
-  specialOffers: SpecialOffer[];
-  items: RoomItem[];
-  cancellation: Cancellation;
-  code: string;
-  dates: any | null;
-  source: number;
-  offer: any | null;
+// Check ID Exists API Types
+export interface CheckIdExistsRequest {
+  token: string;
+  instanceID: string;
+  value: string; // Phone number or group ID
+  type: "user" | "group";
 }
 
-export type SearchResult = SearchResultItem[];
-
-export interface GetRoomsActiveRequest {
-  startDate?: string;
-  endDate?: string;
-  hotelName?: string;
-  hotelStars?: number;
-  city?: string;
-  roomBoard?: string;
-  roomCategory?: string;
-  provider?: string;
+export interface CheckIdExistsResponse {
+  exists: string; // "true" or "false" as string
 }
 
-export interface RoomActiveResult {
-  prebookId: number;
-  startDate: string;
-  endDate: string;
-  hotelName: string;
-  city?: string;
-  price: number;
-  pushPrice: number;
-  board: string;
-  category: string;
-  reservationFullName: string;
-  lastPrice: number;
-  dateLastPrice: string;
+// Get All Chats API Types
+export interface GetAllChatsRequest {
+  token: string;
+  instanceID: string;
 }
 
-export type GetRoomsActiveResponse = RoomActiveResult[];
-
-export interface GetRoomsCancelRequest {
-  startDate?: string;
-  endDate?: string;
-  hotelName?: string;
-  hotelStars?: number;
-  city?: string;
-  roomBoard?: string;
-  roomCategory?: string;
-  provider?: string;
+export interface ChatInfo {
+  id: string;
+  name?: string;
+  isGroup?: boolean;
+  lastMessage?: {
+    body?: string;
+    timestamp?: number;
+  };
+  unreadCount?: number;
+  participants?: string[];
+  archived?: boolean;
+  pinned?: boolean;
 }
 
-export interface RoomCancelResult {
-  startDate: string;
-  endDate: string;
-  hotelName: string;
-  price: number;
-  pushPrice: number;
-  board: string;
-  category: string;
-  reservationFullName: string;
-  dateLastPrice: string;
+export interface GetAllChatsResponse {
+  chats: ChatInfo[];
 }
 
-export type GetRoomsCancelResponse = RoomCancelResult[];
-
-export interface GetOpportunitiesRequest {
-  hotelStars?: number;
-  city?: string;
-  hotelName?: string;
-  reservationMonthDate?: string;
-  checkInMonthDate?: string;
-  provider?: string;
+// Group Management API Types
+export interface CreateGroupRequest {
+  token: string;
+  instanceID: string;
+  name: string;
+  participants: string[];
 }
 
-export interface OpportunityResult {
-  PrebookId: number;
-  StartDate: string;
-  EndDate: string;
-  HotelName: string;
-  Price: number;
-  PushPrice: number;
-  Board: string;
-  Category: string;
-  ReservationFullName: string;
-  LastPrice: number;
-  DateLastPrice: string;
+export interface CreateGroupResponse {
+  message: string;
+  groupId?: string;
 }
 
-export type GetOpportunitiesResponse = OpportunityResult[];
-
-export interface InsertOpportunityRequest {
-  hotelId?: number;
-  startDateStr: string;
-  endDateStr: string;
-  boardId: number;
-  categoryId: number;
-  buyPrice: number;
-  pushPrice: number;
-  maxRooms: number;
-  ratePlanCode?: string;
-  invTypeCode?: string;
-  reservationFullName?: string;
-  stars?: number;
-  destinationId?: number;
-  locationRange?: number;
-  providerId?: number | null;
-  userId?: number;
-  paxAdults?: number;
-  paxChildren: number[];
+export interface GroupParticipantsRequest {
+  token: string;
+  instanceID: string;
+  id: string;
+  participants: string[];
 }
 
-export interface InsertOpportunityResponse {
+export interface GroupParticipantsResponse {
+  message: string;
+}
+
+export interface LeaveGroupRequest {
+  token: string;
+  instanceID: string;
+  id: string;
+}
+
+export interface LeaveGroupResponse {
+  message: string;
+}
+
+export interface GetGroupInviteLinkRequest {
+  token: string;
+  instanceID: string;
+  id: string;
+}
+
+export interface GetGroupInviteLinkResponse {
+  inviteLink: string;
+}
+
+export interface ChangeGroupInviteCodeRequest {
+  token: string;
+  instanceID: string;
+  id: string;
+}
+
+export interface ChangeGroupInviteCodeResponse {
+  newLink: string;
+}
+
+export interface GetGroupRequestsRequest {
+  token: string;
+  instanceID: string;
+  id: string;
+}
+
+export interface GroupRequest {
+  id?: string;
+  number?: string;
+  phone?: string;
+  name?: string;
+  timestamp?: number;
+}
+
+export interface GetGroupRequestsResponse {
+  requests: GroupRequest[];
+}
+
+export interface GroupRequestActionRequest {
+  token: string;
+  instanceID: string;
+  id: string;
+  numbers: string[];
+}
+
+export interface GroupRequestActionResponse {
+  success: string; // "true" or "false"
+}
+
+export interface GetAllGroupsRequest {
+  token: string;
+  instanceID: string;
+}
+
+export interface GroupInfo {
+  id: string;
+  name?: string;
+  description?: string;
+  participantCount?: number;
+  participants?: string[];
+  admins?: string[];
+  isAdmin?: boolean;
+  createdAt?: number;
+  lastActivity?: number;
+}
+
+export interface GetAllGroupsResponse {
+  groups: GroupInfo[];
+}
+
+export interface WaPulseError {
+  error: string;
+  details?: string;
+}
+
+// Instance Management API Types
+export interface CreateInstanceRequest {
+  token: string;
+}
+
+export interface InstanceObject {
+  instanceID: string;
+  [key: string]: any; // Allow for additional properties
+}
+
+export interface CreateInstanceResponse {
+  message: string;
+  instance?: InstanceObject;
+}
+
+export interface GetQrCodeRequest {
+  token: string;
+  instanceID: string;
+}
+
+export interface GetQrCodeResponse {
+  qrCode: string;
+}
+
+export interface StartInstanceRequest {
+  token: string;
+  instanceID: string;
+}
+
+export interface StartInstanceResponse {
+  message: string;
+  instance?: InstanceObject;
+}
+
+export interface StopInstanceRequest {
+  token: string;
+  instanceID: string;
+}
+
+export interface StopInstanceResponse {
+  message: string;
+  instance?: InstanceObject;
+}
+
+export interface DeleteInstanceRequest {
+  token: string;
+  instanceID: string;
+}
+
+export interface DeleteInstanceResponse {
+  message: string;
+}
+
+// Phone number validation helper type
+export type PhoneNumber = string; // Format: country code + number (e.g., "353871234567")
+
+// Message types that could be extended in the future
+export type MessageType = "user" | "group";
+
+// Instance configuration
+export interface InstanceConfig {
+  instanceID: string;
+  token: string;
+  baseUrl?: string;
+}
+
+// Audio Message Types
+export interface SendAudioRequest {
+  to: string;
+  audio: {
+    file: string;
+    filename: string;
+    caption?: string;
+    isVoiceNote?: boolean;
+  };
+  customToken?: string;
+  customInstanceID?: string;
+}
+
+export interface SendAudioResponse {
   success: boolean;
   message: string;
-  id: number;
+  messageId?: string;
 }
 
-export interface DashboardApiParams {
-  hotelStars?: number;
-  city?: string;
-  hotelName?: string;
-  reservationMonthDate?: string;
-  checkInMonthDate?: string;
-  provider?: string;
-}
 
-export interface DashboardResponse {
-  [key: string]: any;
-}
-
-export interface ApiBooking {
-  preBookId: number;
-  pushPrice: number;
-}
-
-export interface UpdatePushPriceResponse {
-  [key: string]: any;
-}
-
-export interface ManualBookingRequest {
-  hotelId?: number;
-  from?: string;
-  to?: string;
-  guestName?: string;
-  room?: any;
-  searchResult?: any;
-}
-
-export interface ManualBookingResponse {
-  [key: string]: any;
-}
-
-export enum BoardType {
-  RoomOnly = 1,
-  Breakfast = 2,
-  HalfBoard = 3,
-  FullBoard = 4,
-  AllInclusive = 5,
-  ContinentalBreakfast = 6,
-  BedAndDinner = 7
-}
-
-export enum RoomCategory {
-  Standard = 1,
-  Superior = 2,
-  Dormitory = 3,
-  Deluxe = 4,
-  Largeroom = 5,
-  Lowsuite = 6,
-  Apartment = 7,
-  Highsuite = 8,
-  Luxury = 9,
-  Premium = 10,
-  JuniorSuite = 11,
-  Suite = 12,
-  MiniSuite = 13,
-  Studio = 14,
-  Executive = 15
-}
-
-export interface OperationResult {
-  name: string;
-  result: string;
-}
-
-export type CancelRoomActiveResponse = OperationResult[];
-
-export interface RoomArchiveRequest {
-  stayFrom?: string;
-  stayTo?: string;
-  hotelName?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  city?: string;
-  roomBoard?: string;
-  roomCategory?: string;
-  minUpdatedAt?: string;
-  maxUpdatedAt?: string;
-  pageNumber: number;
-  pageSize: number;
-}
-
-export interface RoomArchiveResult {
-  StartDate: string;
-  EndDate: string;
-  HotelName: string;
-  City: string;
-  Price: number;
-  RoomBoard: string;
-  RoomCategory: string;
-  PriceUpdatedAt: string;
-}
-
-export interface RoomArchiveResponse {
-  TotalCount: number;
-  Pages: number;
-  Results: RoomArchiveResult[];
-}
-
-export interface HotelImage {
-  id: number;
-  width: number;
-  height: number;
-  title: string;
-  url: string;
-}
-
-export interface HotelDestination {
-  destinationId: number;
-  type: string;
-}
-
-export interface HotelFacilities {
-  tags: string[];
-  list: string[];
-}
-
-export interface StaticHotelData {
-  id: number;
-  name: string;
-  address: string;
-  status: number;
-  zip: string;
-  phone: string;
-  fax?: string;
-  lat: number;
-  lon: number;
-  seoname: string;
-  stars: number;
-  preferred: number;
-  top: number;
-  description: string;
-  mainImageId: number;
-  destinations: HotelDestination[];
-  surroundings: HotelDestination[];
-  facilities: HotelFacilities;
-  images: HotelImage[];
-}
