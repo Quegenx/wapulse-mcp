@@ -15,11 +15,13 @@ COPY tsconfig.json ./
 # Build the application
 RUN npm run build
 
-# Set environment variable for API token (will be overridden by Smithery)
-ENV MEDICI_API_TOKEN=""
+# Set environment variables (will be overridden by Smithery)
+ENV WAPULSE_TOKEN=""
+ENV WAPULSE_INSTANCE_ID=""
+ENV PORT=3000
 
 # Expose port (Smithery will handle this)
-EXPOSE 3000
+EXPOSE $PORT
 
-# Start the MCP server
-CMD ["node", "dist/index.js"] 
+# Start the HTTP server wrapper
+CMD ["node", "dist/http-server.js"] 

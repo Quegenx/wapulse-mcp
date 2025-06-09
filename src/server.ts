@@ -2,6 +2,7 @@ import { FastMCP } from "fastmcp";
 import { z } from "zod";
 import { UserError, imageContent } from "fastmcp";
 import { makeApiRequest, validatePhoneNumber, formatPhoneNumber } from "./utils/helpers.js";
+import { globalConfig, parseConfigFromEnv, getEffectiveConfig } from "./utils/config.js";
 import { handleGetAllChats, handleGetWapulseDoc } from "./tools/general/index.js";
 import {
   handleCreateGroup,
@@ -24,6 +25,9 @@ import {
   handleStopInstance,
   handleDeleteInstance
 } from "./tools/instance/index.js";
+
+// Initialize configuration from environment variables
+parseConfigFromEnv();
 
 // Create FastMCP server following the official pattern
 const server = new FastMCP({
@@ -84,6 +88,9 @@ server.addTool({
   execute: async (args, { log }) => {
     const { to, message, type, customToken, customInstanceID } = args;
 
+    // Get effective configuration (validates automatically)
+    const { token, instanceID } = getEffectiveConfig(customToken, customInstanceID);
+
     // Validate phone number format
     const isValid = validatePhoneNumber(to);
     if (!isValid) {
@@ -102,7 +109,7 @@ server.addTool({
       to,
       message,
       type
-    }, customToken, customInstanceID);
+    }, token, instanceID);
 
     const formattedPhone = formatPhoneNumber(to);
     
@@ -1127,10 +1134,11 @@ export { server };
 
 
 // Start server based on environment
-const transportType = process.env.TRANSPORT_TYPE || "stdio";
-const port = parseInt(process.env.PORT || "8080");
+const port = parseInt(process.env.PORT || "3000");
+const isProduction = process.env.NODE_ENV === "production";
 
-if (transportType === "httpStream") {
+// For Smithery deployment, always use HTTP
+if (isProduction || process.env.TRANSPORT_TYPE === "httpStream") {
   console.log(`🚀 Starting WaPulse MCP Server on HTTP port ${port}`);
   console.log(`📋 Health check: http://localhost:${port}/health`);
   console.log(`🔗 MCP endpoint: http://localhost:${port}/mcp`);

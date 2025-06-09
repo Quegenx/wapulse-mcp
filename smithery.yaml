@@ -1,18 +1,23 @@
 runtime: "container"
+build:
+  dockerfile: "Dockerfile"
+  dockerBuildPath: "."
 startCommand:
   type: "http"
   configSchema:
     type: "object"
     properties:
-      apiToken:
+      wapulseToken:
         type: "string"
-        title: "Medici API Token"
-        description: "Your Medici Hotels API authentication token"
-    required: ["apiToken"]
+        title: "WaPulse API Token"
+        description: "Your WaPulse API authentication token"
+      wapulseInstanceID:
+        type: "string"
+        title: "WaPulse Instance ID"
+        description: "Your WaPulse WhatsApp instance ID"
+    required: ["wapulseToken", "wapulseInstanceID"]
   exampleConfig:
-    apiToken: "your-medici-api-token-here"
-build:
-  dockerfile: "Dockerfile"
-  dockerBuildPath: "."
+    wapulseToken: "your-wapulse-token-here"
+    wapulseInstanceID: "your-instance-id-here"
 env:
   NODE_ENV: "production" 
