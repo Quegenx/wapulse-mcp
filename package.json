@@ -5,6 +5,10 @@
   "main": "dist/stdio-index.js",
   "module": "./src/stdio-index.ts",
   "type": "module",
+  "exports": {
+    ".": "./dist/stdio-index.js",
+    "./smithery": "./dist/smithery-index.js"
+  },
   "bin": {
     "wapulse-whatsapp-mcp-server": "dist/stdio-index.js"
   },
