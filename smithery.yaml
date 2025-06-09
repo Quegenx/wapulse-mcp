@@ -7,17 +7,17 @@ startCommand:
       wapulseToken:
         type: "string"
         title: "WaPulse API Token"
-        description: "Your WaPulse API token from https://wapulse.com"
+        description: "Your WaPulse API token from https://wapulse.com. Required for using tools, optional for tool discovery."
       wapulseInstanceID:
         type: "string"
         title: "WaPulse Instance ID"
-        description: "Your WaPulse WhatsApp instance ID"
+        description: "Your WaPulse WhatsApp instance ID. Required for using tools, optional for tool discovery."
       wapulseBaseUrl:
         type: "string"
         title: "WaPulse Base URL"
         description: "WaPulse API base URL"
         default: "https://wapulseserver.com:3003"
-    required: ["wapulseToken", "wapulseInstanceID"]
+    required: []
     additionalProperties: false
   exampleConfig:
     wapulseToken: "your-wapulse-token-here"
