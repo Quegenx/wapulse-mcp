@@ -1,5 +1,4 @@
 runtime: "typescript"
-entry: "src/smithery-index.ts"
 startCommand:
   type: "http"
   configSchema:

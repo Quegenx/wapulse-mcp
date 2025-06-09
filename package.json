@@ -2,12 +2,12 @@
   "name": "wapulse-whatsapp-mcp-server",
   "version": "1.0.3",
   "description": "MCP server for WaPulse WhatsApp Web API - send messages, manage groups, handle files through WhatsApp Web",
-  "main": "dist/stdio-index.js",
-  "module": "./src/stdio-index.ts",
+  "main": "dist/smithery-index.js",
+  "module": "./src/smithery-index.ts",
   "type": "module",
   "exports": {
-    ".": "./dist/stdio-index.js",
-    "./smithery": "./dist/smithery-index.js"
+    ".": "./dist/smithery-index.js",
+    "./stdio": "./dist/stdio-index.js"
   },
   "bin": {
     "wapulse-whatsapp-mcp-server": "dist/stdio-index.js"
