@@ -1,14 +1,42 @@
 {
-  "name": "wapulse-mcp",
+  "name": "@quegenx/wapulse-mcp",
   "version": "1.0.0",
-  "description": "MCP server for WaPulse WhatsApp Web API",
-  "main": "dist/smithery-index.js",
-  "module": "./src/smithery-index.ts",
+  "description": "MCP server for WaPulse WhatsApp Web API - send messages, manage groups, handle files through WhatsApp Web",
+  "main": "dist/stdio-index.js",
+  "module": "./src/stdio-index.ts",
   "type": "module",
+  "bin": {
+    "wapulse-mcp": "./dist/stdio-index.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "mcp",
+    "whatsapp",
+    "wapulse",
+    "model-context-protocol",
+    "ai",
+    "chatbot",
+    "messaging"
+  ],
+  "author": "Gal Havkin <galhavkin1997@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Quegenx/wapulse-mcp.git"
+  },
+  "homepage": "https://github.com/Quegenx/wapulse-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/Quegenx/wapulse-mcp/issues"
+  },
   "scripts": {
-    "build": "tsup",
+    "build": "tsup && echo '#!/usr/bin/env node' | cat - dist/stdio-index.js > temp && mv temp dist/stdio-index.js && chmod +x dist/stdio-index.js",
     "start": "node dist/smithery-index.js",
     "dev": "tsx src/smithery-index.ts",
+    "dev:stdio": "tsx src/stdio-index.ts",
     "dev:http": "NODE_ENV=production tsx src/smithery-index.ts",
     "format": "prettier --write ."
   },
@@ -27,6 +55,7 @@
   },
   "tsup": {
     "entry": [
+      "src/stdio-index.ts",
       "src/smithery-index.ts"
     ],
     "format": [

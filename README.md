@@ -42,20 +42,48 @@ A comprehensive Model Context Protocol (MCP) server that provides seamless integ
 
 ## Installation
 
-### Option 1: Smithery Cloud (Recommended)
+### Option 1: NPX (Recommended)
 
-Install directly from Smithery cloud with your WaPulse credentials:
+Install directly via NPX with your WaPulse credentials:
+
+```bash
+npx @quegenx/wapulse-mcp
+```
+
+**Configuration via Environment Variables:**
+```bash
+export WAPULSE_TOKEN="your-wapulse-token"
+export WAPULSE_INSTANCE_ID="your-instance-id"
+export WAPULSE_BASE_URL="https://wapulseserver.com:3003"  # optional
+npx @quegenx/wapulse-mcp
+```
+
+**Configuration in MCP Client (Cursor):**
+Add to your `mcp.json`:
+```json
+{
+  "mcpServers": {
+    "wapulse": {
+      "command": "npx",
+      "args": ["@quegenx/wapulse-mcp"],
+      "env": {
+        "WAPULSE_TOKEN": "your-wapulse-token",
+        "WAPULSE_INSTANCE_ID": "your-instance-id"
+      }
+    }
+  }
+}
+```
+
+### Option 2: Smithery Cloud
+
+Install via Smithery cloud (requires Smithery account):
 
 ```bash
 npx @smithery/cli@latest install @Quegenx/wapulse-whatsapp-mcp --client cursor
 ```
 
-When prompted, provide:
-- **WaPulse API Token**: Your token from https://wapulse.com
-- **WaPulse Instance ID**: Your WhatsApp instance ID
-- **WaPulse Base URL**: (optional) Defaults to `https://wapulseserver.com:3003`
-
-### Option 2: Local Development
+### Option 3: Local Development
 
 1. Clone the repository:
 ```bash
