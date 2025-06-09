@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "MCP server for WaPulse WhatsApp Web API",
   "main": "dist/server.js",
+  "module": "./src/server.ts",
   "type": "module",
   "scripts": {
     "build": "tsup",
